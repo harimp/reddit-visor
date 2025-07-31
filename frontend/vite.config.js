@@ -8,17 +8,10 @@ export default defineConfig({
     port: 3000,
     watch: {
       usePolling: true, // Use polling for file changes
-    },
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
-      }
     }
   },
   build: {
-    outDir: 'build',
+    outDir: 'dist',
     sourcemap: true
   },
   resolve: {

@@ -1,20 +1,15 @@
 {
   "name": "redditvisor",
   "version": "1.0.0",
-  "description": "Reddit Visor - Live Reddit Post Monitor",
+  "description": "Reddit Visor - Visual Reddit Content Browser",
   "scripts": {
-    "dev": "node dev-config.js",
-    "dev:concurrent": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:frontend": "cd frontend && npm run dev",
-    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
-    "start": "cd backend && npm start"
+    "preview": "cd frontend && npm run preview",
+    "install:all": "npm install && cd frontend && npm install",
+    "lint": "cd frontend && npm run lint"
   },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
-  },
-  "keywords": ["reddit", "monitoring", "react", "nodejs"],
+  "keywords": ["reddit", "visual", "react", "frontend", "netlify"],
   "author": "",
   "license": "MIT"
 }

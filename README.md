@@ -90,6 +90,50 @@ A modern, visual Reddit content browser designed for enjoying pictures, videos, 
 4. **Open Browser**
    Navigate to `http://localhost:5173` to start browsing!
 
+## 🌐 Netlify Deployment
+
+RedditVisor is designed as a frontend-only application that can be easily deployed to Netlify:
+
+### Deploy to Netlify
+
+1. **Build the Application**
+   ```bash
+   npm run build
+   ```
+
+2. **Deploy to Netlify**
+   - Drag and drop the `frontend/dist` folder to Netlify
+   - Or connect your GitHub repository to Netlify for automatic deployments
+
+3. **Configure Environment Variables**
+   In your Netlify dashboard, add these environment variables:
+   - `VITE_REDDIT_CLIENT_ID`
+   - `VITE_REDDIT_CLIENT_SECRET`
+   - `VITE_REDDIT_USER_AGENT`
+   - `VITE_REDDIT_USERNAME` (optional)
+   - `VITE_REDDIT_PASSWORD` (optional)
+
+4. **Build Settings** (if using Git integration)
+   - Build command: `npm run build`
+   - Publish directory: `frontend/dist`
+   - Base directory: `frontend`
+
+### Netlify Configuration
+
+Create a `netlify.toml` file in the root directory for optimal configuration:
+
+```toml
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
 ## 🎨 Usage
 
 ### Basic Navigation
