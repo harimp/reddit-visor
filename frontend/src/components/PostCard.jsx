@@ -94,11 +94,10 @@ function PostCard({ post }) {
     if (post.mediaType === 'gif' && post.mediaUrl) {
       return (
         <div className="media-container">
-          <LazyImage
-            src={post.mediaUrl}
-            alt={post.title}
-            onClick={handleMediaClick}
-            isGif={true}
+          <LazyVideoPlayer 
+            post={post} 
+            autoplay={true} 
+            muted={true} 
           />
         </div>
       );
