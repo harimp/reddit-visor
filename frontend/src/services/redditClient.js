@@ -182,10 +182,16 @@ class RedditClient {
           url = url.replace('www.reddit.com', 'oauth.reddit.com');
         }
         
+        // Create timeout signal compatible with all browsers
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
         const response = await fetch(url, {
           headers,
-          signal: AbortSignal.timeout(10000) // 10 second timeout
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         // Handle 429 rate limit errors
         if (response.status === 429) {

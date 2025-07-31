@@ -1,6 +1,8 @@
 * {
   margin: 0;
   padding: 0;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
   box-sizing: border-box;
 }
 
@@ -10,7 +12,16 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-transition: background-color 0.3s ease, color 0.3s ease;
+  -moz-transition: background-color 0.3s ease, color 0.3s ease;
+  -o-transition: background-color 0.3s ease, color 0.3s ease;
   transition: background-color 0.3s ease, color 0.3s ease;
+  /* Prevent horizontal scrolling on mobile */
+  overflow-x: hidden;
+  /* Improve text rendering */
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
 }
 
 /* Light Theme (Default) */
@@ -204,10 +215,36 @@ body.dark-theme {
 
 /* Post Grid Styles */
 .post-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
   gap: 20px;
   margin-bottom: 20px;
+}
+
+/* Modern browsers with grid support */
+@supports (display: grid) {
+  .post-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+/* Fallback for browsers without gap support */
+@supports not (gap: 20px) {
+  .post-grid {
+    margin: -10px;
+  }
+  
+  .post-grid > * {
+    margin: 10px;
+    -webkit-box-flex: 1;
+    -ms-flex: 1 1 calc(33.333% - 20px);
+    flex: 1 1 calc(33.333% - 20px);
+  }
 }
 
 .post-grid-empty {

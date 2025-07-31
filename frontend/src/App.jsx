@@ -9,6 +9,7 @@ import ThemeToggle from './components/ThemeToggle.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import { createRedditClient } from './services/redditClient.js';
 import { useRedditData } from './hooks/useRedditData.js';
+import { logCompatibilityInfo, getBrowserInfo } from './utils/browserCompat.js';
 
 function App() {
   const [activeSubreddits, setActiveSubreddits] = useState([]);
@@ -17,8 +18,17 @@ function App() {
   // Polling interval constant
   const POLLING_INTERVAL = 30000; // 30 seconds
 
-  // Initialize Reddit client on app start
+  // Initialize Reddit client and browser compatibility on app start
   useEffect(() => {
+    // Log browser compatibility information
+    logCompatibilityInfo();
+    
+    // Check for potential compatibility issues
+    const browserInfo = getBrowserInfo();
+    if (browserInfo.isSafari && browserInfo.isMobile) {
+      console.warn('📱 iOS Safari detected - some video autoplay features may be limited');
+    }
+    
     const redditConfig = {
       clientId: import.meta.env.VITE_REDDIT_CLIENT_ID,
       clientSecret: import.meta.env.VITE_REDDIT_CLIENT_SECRET,

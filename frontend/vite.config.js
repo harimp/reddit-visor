@@ -12,9 +12,29 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    target: ['es2020', 'edge90', 'firefox88', 'chrome90', 'safari14'],
+    cssTarget: ['chrome90', 'firefox88', 'safari14'],
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom']
+        }
+      }
+    }
   },
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx']
+  },
+  css: {
+    postcss: {
+      plugins: [
+        // Autoprefixer will be added via package.json
+      ]
+    }
+  },
+  define: {
+    // Polyfill global for older browsers
+    global: 'globalThis'
   }
 })

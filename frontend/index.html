@@ -2,10 +2,26 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="theme-color" content="#3498db" />
     <meta name="description" content="Reddit Visor - Live Reddit Post Monitor" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Reddit Visor" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
     <title>Reddit Visor</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://www.reddit.com" crossorigin />
+    <link rel="preconnect" href="https://oauth.reddit.com" crossorigin />
+    <link rel="preconnect" href="https://i.redd.it" crossorigin />
+    <link rel="preconnect" href="https://v.redd.it" crossorigin />
+    
+    <!-- DNS prefetch for external domains -->
+    <link rel="dns-prefetch" href="//imgur.com" />
+    <link rel="dns-prefetch" href="//i.imgur.com" />
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
