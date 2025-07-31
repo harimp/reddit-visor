@@ -112,7 +112,7 @@ function PostCard({ post }) {
           <LazyVideoPlayer 
             post={post} 
             autoplay={true} 
-            muted={false} 
+            muted={true} 
           />
         </div>
       );
