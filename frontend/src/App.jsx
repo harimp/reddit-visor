@@ -14,6 +14,7 @@ import { logCompatibilityInfo, getBrowserInfo } from './utils/browserCompat.js';
 function App() {
   const [activeSubreddits, setActiveSubreddits] = useState([]);
   const [sortBy, setSortBy] = useState('createTime');
+  const [redditClientReady, setRedditClientReady] = useState(false);
   
   // Polling interval constant
   const POLLING_INTERVAL = 30000; // 30 seconds
@@ -38,7 +39,8 @@ function App() {
     };
 
     createRedditClient(redditConfig);
-    console.log('Reddit client initialized');
+    setRedditClientReady(true);
+    console.log('Reddit client initialized and ready');
   }, []);
 
   // Use the Reddit data hook
@@ -112,7 +114,10 @@ function App() {
           onRefresh={refresh}
         />
         
-        <SubredditManagement onConfigChange={handleConfigChange} />
+        <SubredditManagement 
+          onConfigChange={handleConfigChange} 
+          redditClientReady={redditClientReady}
+        />
         
         {loading ? (
           <div className="loading">Loading posts...</div>

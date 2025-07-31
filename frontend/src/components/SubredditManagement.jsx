@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getRedditClient } from '../services/redditClient.js';
 
-function SubredditManagement({ onConfigChange }) {
+function SubredditManagement({ onConfigChange, redditClientReady }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [subredditConfigs, setSubredditConfigs] = useState([]);
   const [newConfig, setNewConfig] = useState({
@@ -34,18 +34,32 @@ function SubredditManagement({ onConfigChange }) {
     { value: 'all', label: 'All Time' }
   ];
 
-  // Load current configurations on mount
+  // Load current configurations when Reddit client is ready
   useEffect(() => {
-    loadConfigurations();
-  }, []);
+    if (redditClientReady) {
+      loadConfigurations();
+    }
+  }, [redditClientReady]);
 
   const loadConfigurations = () => {
     try {
       const redditClient = getRedditClient();
       const configs = redditClient.getSubredditConfigs();
       setSubredditConfigs(configs);
+      console.log(`Loaded ${configs.length} subreddit configurations in SubredditManagement`);
     } catch (error) {
       console.error('Error loading subreddit configurations:', error);
+      // Retry after a short delay if Reddit client isn't ready yet
+      setTimeout(() => {
+        try {
+          const redditClient = getRedditClient();
+          const configs = redditClient.getSubredditConfigs();
+          setSubredditConfigs(configs);
+          console.log(`Loaded ${configs.length} subreddit configurations in SubredditManagement (retry)`);
+        } catch (retryError) {
+          console.error('Error loading subreddit configurations on retry:', retryError);
+        }
+      }, 100);
     }
   };
 
