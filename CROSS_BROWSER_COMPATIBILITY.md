@@ -69,6 +69,15 @@ This document outlines the cross-browser compatibility improvements made to Redd
 - **Image Format Support**: WebP, AVIF detection
 - **Network Information**: Connection quality detection
 
+### 8. Safari CORS Compatibility
+- **Development Proxy**: Vite proxy configuration handles CORS during development
+- **Production Proxy**: Netlify redirects proxy Reddit API calls in production
+- **Safari-Specific Fetch**: Enhanced fetch function with Safari-specific modifications
+- **CORS Error Detection**: Automatic detection and handling of CORS-related errors
+- **Header Management**: Removes problematic headers (User-Agent) for Safari
+- **Credential Handling**: Proper credential management for Safari's ITP
+- **Fallback Mechanisms**: Graceful degradation when CORS requests fail
+
 ## Testing Checklist
 
 ### Desktop Browsers
@@ -116,6 +125,9 @@ This document outlines the cross-browser compatibility improvements made to Redd
 - **Autoplay**: Videos may not autoplay due to browser policies
 - **WebM Support**: Limited WebM codec support
 - **Some CSS Features**: Partial support for newer CSS features
+- **CORS Restrictions**: Stricter CORS policy enforcement, handled via proxy
+- **Cookie Policies**: ITP (Intelligent Tracking Prevention) affects cross-origin requests
+- **Preflight Caching**: Shorter cache duration for CORS preflight responses
 
 ### iOS Safari Specific
 - **Video Autoplay**: Severely restricted, requires user interaction

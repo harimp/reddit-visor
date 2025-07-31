@@ -501,6 +501,11 @@ class RedditClient {
    * Get a valid thumbnail URL, filtering out placeholder thumbnails
    */
   getValidThumbnail(post) {
+    // Handle YouTube videos specially
+    if (post.url && (post.url.includes('youtube.com') || post.url.includes('youtu.be'))) {
+      return this.getYouTubeThumbnail(post.url);
+    }
+    
     if (!post.thumbnail || 
         post.thumbnail === 'self' || 
         post.thumbnail === 'default' || 
@@ -508,11 +513,59 @@ class RedditClient {
         post.thumbnail === 'spoiler') {
       return null;
     }
-    if (post.is_video && post?.preview?.images?.[0].source?.url) {
-      return post?.preview?.images?.[0].source?.url;
+    
+    // For video posts, prefer preview images over thumbnail
+    if (post.is_video && post?.preview?.images?.[0]?.source?.url) {
+      const previewUrl = post.preview.images[0].source.url.replace(/&amp;/g, '&');
+      return previewUrl;
+    }
+    
+    // Use the regular thumbnail if it's valid
+    if (post.thumbnail && post.thumbnail.startsWith('http')) {
+      return post.thumbnail;
+    }
+    
+    // Try to get from preview images as fallback
+    if (post?.preview?.images?.[0]?.source?.url) {
+      return post.preview.images[0].source.url.replace(/&amp;/g, '&');
+    }
+    
+    // Try resolutions as last resort
+    if (post?.preview?.images?.[0]?.resolutions?.length > 0) {
+      const resolutions = post.preview.images[0].resolutions;
+      const mediumRes = resolutions.find(res => res.width >= 320 && res.width <= 640) || 
+                       resolutions[Math.floor(resolutions.length / 2)] || 
+                       resolutions[0];
+      
+      if (mediumRes?.url) {
+        return mediumRes.url.replace(/&amp;/g, '&');
+      }
     }
 
-    return post.thumbnail;
+    return null;
+  }
+
+  /**
+   * Extract YouTube video ID and generate thumbnail URL
+   */
+  getYouTubeThumbnail(url) {
+    let videoId = null;
+    
+    // Handle different YouTube URL formats
+    if (url.includes('youtube.com/watch?v=')) {
+      videoId = url.split('v=')[1]?.split('&')[0];
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    } else if (url.includes('youtube.com/embed/')) {
+      videoId = url.split('/embed/')[1]?.split('?')[0];
+    }
+    
+    if (videoId) {
+      // Use high quality thumbnail (hqdefault) which is 480x360
+      return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    }
+    
+    return null;
   }
 
   /**

@@ -1,12 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-function VideoPlayer({ post, autoplay = false, muted = true }) {
+function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata", lazy = false }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [canPlay, setCanPlay] = useState(false);
   const videoRef = useRef(null);
   const videoData = post.videoData;
   const hasAudio = videoData?.hasAudio !== false;
+
+  // Check if this is a YouTube video
+  const isYouTubeVideo = post.mediaUrl && (post.mediaUrl.includes('youtube.com') || post.mediaUrl.includes('youtu.be'));
+
+  // Extract YouTube video ID for embedding
+  const getYouTubeVideoId = (url) => {
+    if (url.includes('youtube.com/watch?v=')) {
+      return url.split('v=')[1]?.split('&')[0];
+    } else if (url.includes('youtu.be/')) {
+      return url.split('youtu.be/')[1]?.split('?')[0];
+    } else if (url.includes('youtube.com/embed/')) {
+      return url.split('/embed/')[1]?.split('?')[0];
+    }
+    return null;
+  };
 
   // Determine the best video source with fallbacks
   const getVideoSources = () => {
@@ -15,7 +30,7 @@ function VideoPlayer({ post, autoplay = false, muted = true }) {
     // Primary source - fallback MP4 (best compatibility)
     if (videoData?.fallbackUrl) {
       sources.push({ src: videoData.fallbackUrl, type: 'video/mp4' });
-    } else if (post.mediaUrl) {
+    } else if (post.mediaUrl && !isYouTubeVideo) {
       // Detect video type from URL
       const url = post.mediaUrl.toLowerCase();
       if (url.includes('.mp4') || url.includes('v.redd.it')) {
@@ -106,6 +121,34 @@ function VideoPlayer({ post, autoplay = false, muted = true }) {
     );
   }
 
+  // Handle YouTube videos with iframe embed
+  if (isYouTubeVideo) {
+    const videoId = getYouTubeVideoId(post.mediaUrl);
+    if (videoId) {
+      const embedUrl = `https://www.youtube.com/embed/${videoId}?${autoplay ? 'autoplay=1&' : ''}${muted ? 'mute=1&' : ''}rel=0&modestbranding=1`;
+      
+      return (
+        <div className="video-player-container youtube-container">
+          <div className="youtube-embed-wrapper">
+            <iframe
+              className="youtube-embed"
+              src={embedUrl}
+              title={post.title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ 
+                width: '100%', 
+                height: '315px',
+                aspectRatio: '16/9'
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="video-player-container">
       {isLoading && (
@@ -123,7 +166,7 @@ function VideoPlayer({ post, autoplay = false, muted = true }) {
         autoPlay={autoplay}
         playsInline
         webkit-playsinline="true"
-        preload="metadata"
+        preload={lazy ? "none" : preload}
         onError={handleError}
         onLoadStart={handleLoadStart}
         onCanPlay={handleCanPlay}

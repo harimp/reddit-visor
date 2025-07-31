@@ -1,11 +1,35 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { getRelativeTime } from '../utils/timeUtils';
 import { getSubredditBadgeStyle } from '../utils/subredditColors.js';
-import VideoPlayer from './VideoPlayer.jsx';
+import LazyImage from './LazyImage.jsx';
+import LazyVideoPlayer from './LazyVideoPlayer.jsx';
 
 function PostCard({ post }) {
-  const [imageError, setImageError] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Function to get media type tag info
+  const getMediaTypeTag = () => {
+    if (post.mediaType === 'image') {
+      return { label: 'IMAGE', icon: '🖼️', className: 'media-tag-image' };
+    }
+    
+    if (post.mediaType === 'gif') {
+      return { label: 'GIF', icon: '🎞️', className: 'media-tag-gif' };
+    }
+    
+    if (post.mediaType === 'video') {
+      // Determine video type
+      if (post.mediaUrl?.includes('youtube.com') || post.mediaUrl?.includes('youtu.be')) {
+        return { label: 'YOUTUBE', icon: '📺', className: 'media-tag-youtube' };
+      } else if (post.mediaUrl?.includes('v.redd.it') || post.videoData?.fallback_url?.includes('v.redd.it')) {
+        return { label: 'REDDIT VIDEO', icon: '🎥', className: 'media-tag-reddit-video' };
+      } else {
+        return { label: 'VIDEO', icon: '🎬', className: 'media-tag-video' };
+      }
+    }
+    
+    // Default for text posts
+    return { label: 'TEXT', icon: '📝', className: 'media-tag-text' };
+  };
 
   const handleLinkClick = (e) => {
     e.preventDefault();
@@ -31,51 +55,30 @@ function PostCard({ post }) {
     }
   };
 
-  const handleImageLoad = () => {
-    setImageLoaded(true);
-  };
-
-  const handleImageError = () => {
-    setImageError(true);
-    setImageLoaded(true);
-  };
 
   const renderMedia = () => {
-    if (post.mediaType === 'image' && post.mediaUrl && !imageError) {
+    if (post.mediaType === 'image' && post.mediaUrl) {
       return (
-        <div className="media-container" onClick={handleMediaClick}>
-          {!imageLoaded && (
-            <div className="media-loading">
-              <div className="loading-spinner"></div>
-            </div>
-          )}
-          <img
+        <div className="media-container">
+          <LazyImage
             src={post.mediaUrl}
             alt={post.title}
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            style={{ display: imageLoaded ? 'block' : 'none' }}
+            onClick={handleMediaClick}
+            isGif={false}
           />
         </div>
       );
     }
 
-    if (post.mediaType === 'gif' && post.mediaUrl && !imageError) {
+    if (post.mediaType === 'gif' && post.mediaUrl) {
       return (
-        <div className="media-container" onClick={handleMediaClick}>
-          {!imageLoaded && (
-            <div className="media-loading">
-              <div className="loading-spinner"></div>
-            </div>
-          )}
-          <img
+        <div className="media-container">
+          <LazyImage
             src={post.mediaUrl}
             alt={post.title}
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            style={{ display: imageLoaded ? 'block' : 'none' }}
+            onClick={handleMediaClick}
+            isGif={true}
           />
-          <div className="gif-indicator">GIF</div>
         </div>
       );
     }
@@ -88,10 +91,10 @@ function PostCard({ post }) {
       );
 
       if (isRedditVideo) {
-        // Use VideoPlayer component for Reddit hosted videos
+        // Use LazyVideoPlayer for Reddit hosted videos
         return (
           <div className="media-container">
-            <VideoPlayer 
+            <LazyVideoPlayer 
               post={post} 
               autoplay={false} 
               muted={true} 
@@ -99,23 +102,16 @@ function PostCard({ post }) {
           </div>
         );
       } else {
-        // For non-Reddit videos (YouTube, etc.), show thumbnail with play button
+        // For non-Reddit videos (YouTube, etc.), show lazy-loaded thumbnail with play button
         const videoThumbnail = post.thumbnailUrl || post.mediaUrl;
         
-        if (videoThumbnail && !imageError) {
+        if (videoThumbnail) {
           return (
-            <div className="media-container video-container" onClick={handleMediaClick}>
-              {!imageLoaded && (
-                <div className="media-loading">
-                  <div className="loading-spinner"></div>
-                </div>
-              )}
-              <img
+            <div className="media-container video-container">
+              <LazyImage
                 src={videoThumbnail}
                 alt={post.title}
-                onLoad={handleImageLoad}
-                onError={handleImageError}
-                style={{ display: imageLoaded ? 'block' : 'none' }}
+                onClick={handleMediaClick}
               />
               <div className="video-indicator">
                 <div className="play-button">▶</div>
@@ -162,6 +158,8 @@ function PostCard({ post }) {
     );
   };
 
+  const mediaTag = getMediaTypeTag();
+
   return (
     <div className="post-card">
       {renderMedia()}
@@ -169,6 +167,10 @@ function PostCard({ post }) {
       <div className="post-info">
         <div className="post-header">
           <span className="emoji-tag">{post.emojiTag}</span>
+          <span className={`media-type-tag ${mediaTag.className}`}>
+            <span className="media-tag-icon">{mediaTag.icon}</span>
+            <span className="media-tag-label">{mediaTag.label}</span>
+          </span>
           <span 
             className="subreddit-badge"
             style={getSubredditBadgeStyle(post.subreddit)}
