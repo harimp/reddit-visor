@@ -8,6 +8,43 @@ export default defineConfig({
     port: 3000,
     watch: {
       usePolling: true, // Use polling for file changes
+    },
+    proxy: {
+      // Proxy Reddit API calls to avoid CORS issues, especially in Safari
+      '/api/reddit': {
+        target: 'https://www.reddit.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/reddit/, ''),
+        configure: (proxy, options) => {
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            // Add CORS headers for Safari compatibility
+            proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+            proxyRes.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS';
+            proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,User-Agent,X-Requested-With';
+            proxyRes.headers['Access-Control-Max-Age'] = '86400'; // 24 hours
+            
+            // Handle Safari's stricter cookie policies
+            if (req.headers['user-agent'] && req.headers['user-agent'].includes('Safari')) {
+              proxyRes.headers['Access-Control-Allow-Credentials'] = 'false';
+            }
+          });
+        }
+      },
+      // Proxy OAuth endpoints
+      '/api/oauth': {
+        target: 'https://oauth.reddit.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/oauth/, ''),
+        configure: (proxy, options) => {
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            // Add CORS headers for OAuth requests
+            proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+            proxyRes.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS';
+            proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization,User-Agent';
+            proxyRes.headers['Access-Control-Max-Age'] = '3600'; // 1 hour for OAuth
+          });
+        }
+      }
     }
   },
   build: {

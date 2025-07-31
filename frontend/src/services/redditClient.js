@@ -1,7 +1,10 @@
 /**
  * Reddit API Client for direct frontend access
  * Handles OAuth authentication, rate limiting, and data fetching
+ * Enhanced with Safari CORS compatibility
  */
+
+import { redditApiFetch, getBrowserInfo, isCORSError } from '../utils/browserCompat.js';
 
 class RedditClient {
   constructor(config) {
@@ -126,7 +129,7 @@ class RedditClient {
         tokenData.set('password', this.config.password);
       }
 
-      const response = await fetch('https://www.reddit.com/api/v1/access_token', {
+      const response = await redditApiFetch('https://www.reddit.com/api/v1/access_token', {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${auth}`,
@@ -182,16 +185,10 @@ class RedditClient {
           url = url.replace('www.reddit.com', 'oauth.reddit.com');
         }
         
-        // Create timeout signal compatible with all browsers
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-        
-        const response = await fetch(url, {
-          headers,
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
+        // Use Safari-compatible fetch with enhanced error handling
+        const response = await redditApiFetch(url, {
+          headers
+        }, 10000); // 10 second timeout
         
         // Handle 429 rate limit errors
         if (response.status === 429) {

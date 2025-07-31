@@ -146,7 +146,7 @@ export const removeEventListenerSafe = (element, event, handler, options = false
   }
 };
 
-// Cross-browser fetch with timeout
+// Cross-browser fetch with timeout and Safari CORS handling
 export const fetchWithTimeout = async (url, options = {}, timeoutMs = 10000) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -160,6 +160,94 @@ export const fetchWithTimeout = async (url, options = {}, timeoutMs = 10000) => 
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
+    throw error;
+  }
+};
+
+// Safari-compatible fetch with CORS error handling
+export const safariCompatibleFetch = async (url, options = {}, timeoutMs = 10000) => {
+  const browser = getBrowserInfo();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    let modifiedOptions = { ...options };
+    
+    // Safari-specific modifications
+    if (browser.isSafari) {
+      // Avoid credential issues in Safari
+      modifiedOptions.credentials = modifiedOptions.credentials || 'omit';
+      modifiedOptions.mode = 'cors';
+      
+      // Remove problematic headers for Safari
+      if (modifiedOptions.headers) {
+        const headers = { ...modifiedOptions.headers };
+        // Safari doesn't allow custom User-Agent from fetch
+        delete headers['User-Agent'];
+        modifiedOptions.headers = headers;
+      }
+    }
+    
+    modifiedOptions.signal = controller.signal;
+    
+    const response = await fetch(url, modifiedOptions);
+    clearTimeout(timeoutId);
+    return response;
+    
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    // Handle Safari-specific CORS errors
+    if (browser.isSafari && isCORSError(error)) {
+      console.warn('Safari CORS error detected:', error.message);
+      throw new Error(`Safari CORS Error: ${error.message}. Try refreshing the page or check your network connection.`);
+    }
+    
+    throw error;
+  }
+};
+
+// Detect CORS-related errors
+export const isCORSError = (error) => {
+  const corsIndicators = [
+    'CORS',
+    'Cross-Origin',
+    'cross-origin',
+    'Access-Control',
+    'preflight',
+    'Not allowed by Access-Control-Allow-Origin',
+    'has been blocked by CORS policy'
+  ];
+  
+  return corsIndicators.some(indicator => 
+    error.message.includes(indicator) || 
+    error.toString().includes(indicator)
+  );
+};
+
+// Enhanced fetch for Reddit API with environment detection
+export const redditApiFetch = async (endpoint, options = {}, timeoutMs = 10000) => {
+  const browser = getBrowserInfo();
+  const isDevelopment = import.meta.env.DEV;
+  
+  // Use proxy in development to avoid CORS issues
+  let url = endpoint;
+  if (isDevelopment) {
+    if (endpoint.includes('oauth.reddit.com')) {
+      url = endpoint.replace('https://oauth.reddit.com', '/api/oauth');
+    } else if (endpoint.includes('www.reddit.com')) {
+      url = endpoint.replace('https://www.reddit.com', '/api/reddit');
+    }
+  }
+  
+  try {
+    return await safariCompatibleFetch(url, options, timeoutMs);
+  } catch (error) {
+    // If proxy fails in development, try direct request as fallback
+    if (isDevelopment && url !== endpoint) {
+      console.warn('Proxy request failed, attempting direct request:', error.message);
+      return await safariCompatibleFetch(endpoint, options, timeoutMs);
+    }
     throw error;
   }
 };
@@ -271,6 +359,9 @@ export default {
   addEventListenerSafe,
   removeEventListenerSafe,
   fetchWithTimeout,
+  safariCompatibleFetch,
+  isCORSError,
+  redditApiFetch,
   getMobileViewport,
   getTouchCoordinates,
   setCSSCustomProperty,
