@@ -8,7 +8,8 @@ function LazyImage({
   onClick, 
   isGif = false,
   placeholder = null,
-  style = {}
+  style = {},
+  disableAnimation = false
 }) {
   const {
     elementRef,
@@ -76,7 +77,7 @@ function LazyImage({
       style={{
         ...style,
         opacity: imageLoaded ? 1 : 0,
-        transition: 'opacity 0.3s ease-in-out'
+        transition: disableAnimation ? 'none' : 'opacity 0.3s ease-in-out'
       }}
     />
   );

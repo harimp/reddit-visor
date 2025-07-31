@@ -343,6 +343,17 @@ class RedditClient {
    * Extract media URL and type from Reddit post data
    */
   extractMediaInfo(post) {
+    // Priority 0: Check for image galleries first
+    if (post.is_gallery && post.gallery_data && post.media_metadata) {
+      return {
+        mediaUrl: null,
+        mediaType: 'gallery',
+        thumbnailUrl: this.getValidThumbnail(post),
+        galleryData: post.gallery_data,
+        mediaMetadata: post.media_metadata
+      };
+    }
+
     // Priority 1: Reddit videos (v.redd.it)
     if (post.is_video && post.media?.reddit_video) {
       const redditVideo = post.media.reddit_video;
@@ -623,6 +634,8 @@ class RedditClient {
       emojiTag: this.getEmojiTag(postSubreddit),
       lastUpdated: new Date(),
       videoData: mediaInfo.videoData || null,
+      galleryData: mediaInfo.galleryData || null,
+      mediaMetadata: mediaInfo.mediaMetadata || null,
     };
   }
 

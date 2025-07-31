@@ -3,11 +3,16 @@ import { getRelativeTime } from '../utils/timeUtils';
 import { getSubredditBadgeStyle } from '../utils/subredditColors.js';
 import LazyImage from './LazyImage.jsx';
 import LazyVideoPlayer from './LazyVideoPlayer.jsx';
+import ImageGallery from './ImageGallery.jsx';
 
 function PostCard({ post }) {
 
   // Function to get media type tag info
   const getMediaTypeTag = () => {
+    if (post.mediaType === 'gallery') {
+      return { label: 'GALLERY', icon: '🖼️', className: 'media-tag-gallery' };
+    }
+    
     if (post.mediaType === 'image') {
       return { label: 'IMAGE', icon: '🖼️', className: 'media-tag-image' };
     }
@@ -57,6 +62,22 @@ function PostCard({ post }) {
 
 
   const renderMedia = () => {
+    if (post.mediaType === 'gallery' && post.galleryData && post.mediaMetadata) {
+      return (
+        <div className="media-container">
+          <ImageGallery
+            galleryData={post.galleryData}
+            mediaMetadata={post.mediaMetadata}
+            title={post.title}
+            onImageClick={(e, imageUrl) => {
+              e.preventDefault();
+              window.open(imageUrl, '_blank');
+            }}
+          />
+        </div>
+      );
+    }
+
     if (post.mediaType === 'image' && post.mediaUrl) {
       return (
         <div className="media-container">

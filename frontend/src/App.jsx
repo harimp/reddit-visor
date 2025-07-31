@@ -3,6 +3,7 @@ import './App.css';
 import Header from './components/Header.jsx';
 import SubredditManagement from './components/SubredditManagement.jsx';
 import SubredditFilter from './components/SubredditFilter.jsx';
+import MediaTypeFilter from './components/MediaTypeFilter.jsx';
 import SortControl from './components/SortControl.jsx';
 import PostGrid from './components/PostGrid.jsx';
 import ThemeToggle from './components/ThemeToggle.jsx';
@@ -13,6 +14,7 @@ import { logCompatibilityInfo, getBrowserInfo } from './utils/browserCompat.js';
 
 function App() {
   const [activeSubreddits, setActiveSubreddits] = useState([]);
+  const [activeMediaTypes, setActiveMediaTypes] = useState([]);
   const [sortBy, setSortBy] = useState('createTime');
   const [redditClientReady, setRedditClientReady] = useState(false);
   
@@ -53,11 +55,18 @@ function App() {
     refresh
   } = useRedditData(POLLING_INTERVAL);
 
-  // Filter posts based on subreddit filter only (simplified for picture content)
+  // Filter posts based on subreddit and media type filters
   const filteredPosts = posts.filter(post => {
     // Subreddit filter (activeSubreddits contains subreddits to HIDE)
     if (activeSubreddits.length > 0) {
       if (activeSubreddits.includes(post.subreddit)) {
+        return false;
+      }
+    }
+    
+    // Media type filter (activeMediaTypes contains media types to SHOW)
+    if (activeMediaTypes.length > 0) {
+      if (!activeMediaTypes.includes(post.mediaType)) {
         return false;
       }
     }
@@ -94,6 +103,11 @@ function App() {
     setActiveSubreddits(newActiveSubreddits);
   };
 
+  // Handle media type filter changes
+  const handleMediaTypeChange = (newActiveMediaTypes) => {
+    setActiveMediaTypes(newActiveMediaTypes);
+  };
+
   // Handle subreddit configuration changes
   const handleConfigChange = () => {
     // Refresh data when subreddit configurations change
@@ -108,7 +122,7 @@ function App() {
           filteredPosts={filteredPosts.length}
           lastUpdated={lastUpdated}
           error={error}
-          hasActiveFilters={activeSubreddits.length > 0}
+          hasActiveFilters={activeSubreddits.length > 0 || activeMediaTypes.length > 0}
           isPolling={isPolling}
           pollingInterval={POLLING_INTERVAL}
           onRefresh={refresh}
@@ -128,6 +142,11 @@ function App() {
           </div>
         ) : (
           <>
+            <MediaTypeFilter 
+              posts={posts}
+              activeMediaTypes={activeMediaTypes}
+              onMediaTypeChange={handleMediaTypeChange}
+            />
             <SubredditFilter 
               posts={posts}
               activeSubreddits={activeSubreddits}

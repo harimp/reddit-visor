@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLazyLoad } from '../hooks/useLazyLoad.js';
 import VideoPlayer from './VideoPlayer.jsx';
 
@@ -16,6 +16,17 @@ function LazyVideoPlayer({
     rootMargin: '100px',
     threshold: 0.1
   });
+
+  // Decode HTML entities in URLs
+  const decodeHtmlEntities = useCallback((str) => {
+    if (!str) return str;
+    return str
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }, []);
 
   const handleThumbnailClick = (e) => {
     e.preventDefault();
@@ -70,7 +81,8 @@ function LazyVideoPlayer({
   const getThumbnailContainerStyle = () => containerStyle;
 
   const renderThumbnailWithOverlay = () => {
-    const videoThumbnail = post.thumbnailUrl || post.mediaUrl;
+    const rawVideoThumbnail = post.thumbnailUrl || post.mediaUrl;
+    const videoThumbnail = decodeHtmlEntities(rawVideoThumbnail);
     const containerStyle = getThumbnailContainerStyle();
     
     if (!videoThumbnail || videoThumbnail === 'self' || videoThumbnail === 'default' || videoThumbnail === 'nsfw') {

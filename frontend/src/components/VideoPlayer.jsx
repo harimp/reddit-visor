@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import ReactPlayer from 'react-player';
 
 function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata", lazy = false }) {
@@ -9,11 +9,22 @@ function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata
   const videoData = post.videoData;
   const hasAudio = videoData?.hasAudio !== false;
 
+  // Decode HTML entities in URLs
+  const decodeHtmlEntities = useCallback((str) => {
+    if (!str) return str;
+    return str
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }, []);
+
   // Get the best video URL for react-player
   const getVideoUrl = () => {
     // For all video types, use the mediaUrl which already contains the best URL
     // (The redditClient has already processed fallback_url into mediaUrl)
-    return post.mediaUrl;
+    return decodeHtmlEntities(post.mediaUrl);
   };
 
   const videoUrl = getVideoUrl();
@@ -112,7 +123,7 @@ function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata
         config={{
           file: {
             attributes: {
-              poster: post.thumbnailUrl,
+              poster: decodeHtmlEntities(post.thumbnailUrl),
               preload: lazy ? "none" : preload,
               playsInline: true,
               'webkit-playsinline': true,

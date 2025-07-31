@@ -156,10 +156,15 @@ export function useLazyImage(src) {
   });
 
   useEffect(() => {
-    if (isVisible && src && !imageSrc && !imageError) {
-      setImageSrc(src);
+    if (isVisible && src) {
+      // If the src has changed, reset the loading states and update the image source
+      if (imageSrc !== src) {
+        setImageLoaded(false);
+        setImageError(false);
+        setImageSrc(src);
+      }
     }
-  }, [isVisible, src, imageSrc, imageError]);
+  }, [isVisible, src, imageSrc]);
 
   const handleLoad = useCallback(() => {
     setImageLoaded(true);
