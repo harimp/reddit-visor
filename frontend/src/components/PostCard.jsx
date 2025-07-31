@@ -84,65 +84,17 @@ function PostCard({ post }) {
     }
 
     if (post.mediaType === 'video') {
-      // Check if this is a Reddit hosted video with video data
-      const isRedditVideo = post.videoData && (
-        post.mediaUrl?.includes('v.redd.it') || 
-        post.videoData.fallback_url?.includes('v.redd.it')
+      // Use LazyVideoPlayer for ALL video types (Reddit, YouTube, etc.)
+      // ReactPlayer handles all video sources automatically
+      return (
+        <div className="media-container">
+          <LazyVideoPlayer 
+            post={post} 
+            autoplay={true} 
+            muted={true} 
+          />
+        </div>
       );
-
-      if (isRedditVideo) {
-        // Use LazyVideoPlayer for Reddit hosted videos
-        return (
-          <div className="media-container">
-            <LazyVideoPlayer 
-              post={post} 
-              autoplay={false} 
-              muted={true} 
-            />
-          </div>
-        );
-      } else {
-        // For non-Reddit videos (YouTube, etc.), show lazy-loaded thumbnail with play button
-        const videoThumbnail = post.thumbnailUrl || post.mediaUrl;
-        
-        if (videoThumbnail) {
-          return (
-            <div className="media-container video-container">
-              <LazyImage
-                src={videoThumbnail}
-                alt={post.title}
-                onClick={handleMediaClick}
-              />
-              <div className="video-indicator">
-                <div className="play-button">▶</div>
-                {post.videoData?.duration && (
-                  <div className="video-duration">
-                    {Math.floor(post.videoData.duration / 60)}:{(post.videoData.duration % 60).toString().padStart(2, '0')}
-                  </div>
-                )}
-              </div>
-              {post.videoData?.hasAudio === false && (
-                <div className="no-audio-indicator">🔇</div>
-              )}
-            </div>
-          );
-        } else {
-          // Fallback for videos without thumbnails
-          return (
-            <div className="media-container video-container-fallback" onClick={handleMediaClick}>
-              <div className="video-fallback-content">
-                <div className="video-icon">🎥</div>
-                <div className="video-text">Video Content</div>
-                {post.videoData?.duration && (
-                  <div className="video-duration-text">
-                    {Math.floor(post.videoData.duration / 60)}:{(post.videoData.duration % 60).toString().padStart(2, '0')}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        }
-      }
     }
 
     // Fallback for text posts or failed media

@@ -22,6 +22,14 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
+  /* Disable zoom and touch manipulation on mobile */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 /* Light Theme (Default) */
@@ -291,6 +299,10 @@ body.dark-theme {
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
   cursor: pointer;
+  /* Prevent zoom on mobile */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .post-card:hover {
@@ -443,13 +455,140 @@ body.dark-theme {
   border-radius: 8px;
   overflow: hidden;
   background: #000;
+  /* Ensure proper aspect ratio handling */
+  min-height: 200px;
 }
 
-.video-player {
-  width: 100%;
-  height: auto;
-  display: block;
+.react-player {
   border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-player > div {
+  border-radius: 8px !important;
+}
+
+.react-player video {
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.react-player iframe {
+  border-radius: 8px;
+}
+
+/* Safari-specific video fixes */
+@supports (-webkit-appearance: none) {
+  .video-player {
+    /* Aggressive Safari flickering prevention */
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+    perspective: 1000px;
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+    /* Force GPU compositing layer */
+    will-change: transform;
+    -webkit-will-change: transform;
+    /* Prevent Safari video resizing flicker */
+    -webkit-transform-origin: center center;
+    transform-origin: center center;
+    /* Force hardware acceleration */
+    -webkit-filter: blur(0);
+    filter: blur(0);
+  }
+  
+  .video-player-container {
+    /* Additional container stabilization for Safari */
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    /* Prevent Safari container flickering */
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+    -webkit-perspective: 1000px;
+    perspective: 1000px;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .video-player {
+    /* iOS Safari video stabilization */
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    /* Prevent iOS video flickering during orientation changes */
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+    /* Force compositing layer on iOS */
+    -webkit-filter: blur(0);
+    filter: blur(0);
+    /* Stabilize video dimensions */
+    -webkit-transform-origin: center center;
+    transform-origin: center center;
+    /* iOS Safari control flickering fixes */
+    -webkit-appearance: none;
+    appearance: none;
+    /* Prevent video control stuttering */
+    -webkit-user-select: none;
+    user-select: none;
+    /* Force video to render properly */
+    -webkit-mask-image: -webkit-radial-gradient(white, black);
+    mask-image: radial-gradient(white, black);
+  }
+  
+  .video-player-container {
+    /* iOS container stabilization */
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+    /* iOS Safari single column optimization */
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+  }
+  
+  /* iOS Safari single column view specific fixes */
+  @media (max-width: 768px) {
+    .video-player {
+      /* Force video controls to be stable in single column */
+      -webkit-transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0);
+      /* Prevent control bar flickering */
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      /* Ensure proper video rendering on iOS */
+      -webkit-transform-style: preserve-3d;
+      transform-style: preserve-3d;
+      /* Fix iOS Safari video control stuttering */
+      -webkit-appearance: none;
+      appearance: none;
+      /* Prevent iOS video from getting stuck on first frame */
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
+      mask-image: radial-gradient(white, black);
+    }
+    
+    .video-player-container {
+      /* Single column container optimization */
+      -webkit-transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      /* Prevent container from interfering with video controls */
+      -webkit-transform-style: preserve-3d;
+      transform-style: preserve-3d;
+      /* iOS Safari touch optimization */
+      -webkit-overflow-scrolling: touch;
+      overflow-scrolling: touch;
+    }
+  }
 }
 
 /* YouTube Embed Styles */
@@ -2502,28 +2641,45 @@ body.dark-theme .skeleton-shimmer {
 .lazy-video-container {
   position: relative;
   width: 100%;
+  height: auto; /* Let container size naturally */
   background: #000;
   border-radius: 8px;
   overflow: hidden;
-  min-height: 200px; /* Minimum height to ensure visibility */
+  /* Prevent layout shifts and optimize for changes */
+  will-change: auto;
+  contain: layout style;
+  /* Force hardware acceleration */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  /* Prevent repaints during dimension changes */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  /* Disable transitions to prevent stuttering */
+  transition: none;
 }
 
 .lazy-video-placeholder {
   position: relative;
   width: 100%;
-  min-height: 250px; /* Increased from 200px */
-  height: 250px; /* Fixed height to prevent flatness */
+  height: auto; /* Let placeholder size naturally */
   background: #2c3e50;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Optimize placeholder rendering */
+  will-change: auto;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .lazy-video-placeholder .skeleton-loader {
   width: 100%;
   height: 100%;
-  min-height: 250px; /* Increased from 200px */
   background: #34495e;
+  /* Optimize skeleton animation */
+  will-change: transform;
 }
 
 .video-skeleton {
@@ -2579,17 +2735,41 @@ body.dark-theme .skeleton-shimmer {
 .video-thumbnail-container {
   position: relative;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  overflow: hidden;
+  border-radius: 8px;
+  /* Optimize for mobile performance */
+  will-change: auto;
+  contain: layout style;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  /* Disable hover effects on mobile to prevent stuttering */
+  transition: none;
 }
 
-.video-thumbnail-container:hover {
-  transform: scale(1.02);
+/* Only enable hover effects on non-touch devices */
+@media (hover: hover) and (pointer: fine) {
+  .video-thumbnail-container {
+    transition: transform 0.2s ease;
+  }
+  
+  .video-thumbnail-container:hover {
+    transform: scale(1.02) translateZ(0);
+  }
 }
 
 .video-thumbnail {
   width: 100%;
-  height: auto;
+  height: 100%;
   display: block;
+  object-fit: cover;
+  /* Optimize image rendering */
+  will-change: auto;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .video-overlay {
@@ -2780,18 +2960,17 @@ body.dark-theme .column-skeleton {
   
   .lazy-video-container,
   .lazy-video-placeholder {
-    min-height: 200px; /* Keep videos taller on mobile */
-    height: 200px;
+    height: auto; /* Let videos size naturally on mobile */
   }
   
   .lazy-video-placeholder .skeleton-loader {
-    min-height: 200px;
+    height: auto; /* Let skeleton size naturally */
   }
   
   .video-thumbnail-fallback,
   .video-thumbnail-error-fallback {
-    min-height: 200px;
-    height: 200px;
+    height: auto; /* Let fallbacks size naturally */
+    min-height: 150px; /* Reduced minimum for better aspect ratios */
   }
   
   .play-button-placeholder {
@@ -2809,6 +2988,24 @@ body.dark-theme .column-skeleton {
   .column-skeleton {
     height: 250px;
   }
+  
+  /* Mobile video player specific fixes */
+  .video-player-container {
+    height: auto; /* Let video player size naturally */
+    min-height: 150px; /* Reduced minimum for better aspect ratios */
+  }
+  
+  .video-player {
+    object-fit: contain;
+    /* Ensure Safari mobile video displays properly */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  /* YouTube embed mobile fixes */
+  .youtube-embed-wrapper {
+    padding-bottom: 56.25%; /* Maintain 16:9 aspect ratio */
+  }
 }
 
 @media (max-width: 480px) {
@@ -2819,18 +3016,18 @@ body.dark-theme .column-skeleton {
   
   .lazy-video-container,
   .lazy-video-placeholder {
-    min-height: 180px; /* Keep videos reasonably tall on small screens */
-    height: 180px;
+    height: auto; /* Let videos size naturally on small screens */
+    min-height: 120px; /* Reduced minimum for better aspect ratios */
   }
   
   .lazy-video-placeholder .skeleton-loader {
-    min-height: 180px;
+    height: auto; /* Let skeleton size naturally */
   }
   
   .video-thumbnail-fallback,
   .video-thumbnail-error-fallback {
-    min-height: 180px;
-    height: 180px;
+    height: auto; /* Let fallbacks size naturally */
+    min-height: 120px; /* Reduced minimum for better aspect ratios */
   }
   
   .play-button-placeholder {
