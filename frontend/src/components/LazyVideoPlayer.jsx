@@ -168,7 +168,7 @@ function LazyVideoPlayer({
       ref={elementRef}
       className={`lazy-video-container ${className}`}
     >
-      {!isVisible && renderVideoPlaceholder()}
+      {!isVisible && !showVideo && renderVideoPlaceholder()}
       
       {isVisible && !showVideo && renderThumbnailWithOverlay()}
       

@@ -20,10 +20,10 @@ function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata
       .replace(/&#39;/g, "'");
   }, []);
 
-  // Get the best video URL for react-player
+  // Get the best video URL for react-player (single URL, not array)
   const getVideoUrl = () => {
-    // For all video types, use the mediaUrl which already contains the best URL
-    // (The redditClient has already processed fallback_url into mediaUrl)
+    // The redditClient has already prioritized HLS > DASH > fallback in mediaUrl
+    // So we can just use the processed mediaUrl directly
     return decodeHtmlEntities(post.mediaUrl);
   };
 

@@ -357,8 +357,16 @@ class RedditClient {
     // Priority 1: Reddit videos (v.redd.it)
     if (post.is_video && post.media?.reddit_video) {
       const redditVideo = post.media.reddit_video;
+      
+      // Prioritize HLS/DASH URLs over fallback_url for better audio support
+      const getBestVideoUrl = () => {
+        if (redditVideo.hls_url) return redditVideo.hls_url;     // M3U8 - best option with audio
+        if (redditVideo.dash_url) return redditVideo.dash_url;   // MPD - good option with audio
+        return redditVideo.fallback_url || post.url;             // MP4 - fallback (often no audio)
+      };
+      
       return {
-        mediaUrl: redditVideo.fallback_url || post.url,
+        mediaUrl: getBestVideoUrl(),
         mediaType: redditVideo.is_gif ? 'gif' : 'video',
         thumbnailUrl: this.getValidThumbnail(post),
         videoData: {
@@ -367,7 +375,8 @@ class RedditClient {
           duration: redditVideo.duration,
           hasAudio: redditVideo.has_audio,
           dashUrl: redditVideo.dash_url,
-          hlsUrl: redditVideo.hls_url
+          hlsUrl: redditVideo.hls_url,
+          fallbackUrl: redditVideo.fallback_url
         }
       };
     }
@@ -375,8 +384,16 @@ class RedditClient {
     // Priority 2: Check secure_media for videos (backup)
     if (post.secure_media?.reddit_video) {
       const redditVideo = post.secure_media.reddit_video;
+      
+      // Prioritize HLS/DASH URLs over fallback_url for better audio support
+      const getBestVideoUrl = () => {
+        if (redditVideo.hls_url) return redditVideo.hls_url;     // M3U8 - best option with audio
+        if (redditVideo.dash_url) return redditVideo.dash_url;   // MPD - good option with audio
+        return redditVideo.fallback_url || post.url;             // MP4 - fallback (often no audio)
+      };
+      
       return {
-        mediaUrl: redditVideo.fallback_url || post.url,
+        mediaUrl: getBestVideoUrl(),
         mediaType: redditVideo.is_gif ? 'gif' : 'video',
         thumbnailUrl: this.getValidThumbnail(post),
         videoData: {
@@ -385,7 +402,8 @@ class RedditClient {
           duration: redditVideo.duration,
           hasAudio: redditVideo.has_audio,
           dashUrl: redditVideo.dash_url,
-          hlsUrl: redditVideo.hls_url
+          hlsUrl: redditVideo.hls_url,
+          fallbackUrl: redditVideo.fallback_url
         }
       };
     }

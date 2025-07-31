@@ -112,7 +112,7 @@ function PostCard({ post }) {
           <LazyVideoPlayer 
             post={post} 
             autoplay={true} 
-            muted={true} 
+            muted={false} 
           />
         </div>
       );
@@ -140,10 +140,6 @@ function PostCard({ post }) {
       <div className="post-info">
         <div className="post-header">
           <span className="emoji-tag">{post.emojiTag}</span>
-          <span className={`media-type-tag ${mediaTag.className}`}>
-            <span className="media-tag-icon">{mediaTag.icon}</span>
-            <span className="media-tag-label">{mediaTag.label}</span>
-          </span>
           <span 
             className="subreddit-badge"
             style={getSubredditBadgeStyle(post.subreddit)}
@@ -157,6 +153,10 @@ function PostCard({ post }) {
             }}
           >
             r/{post.subreddit}
+          </span>
+          <span className={`media-type-tag ${mediaTag.className}`}>
+            <span className="media-tag-icon">{mediaTag.icon}</span>
+            <span className="media-tag-label">{mediaTag.label}</span>
           </span>
         </div>
         
