@@ -1,10 +1,22 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactPlayer from 'react-player';
+import { useVideoPlayback } from '../hooks/useVideoPlayback.js';
 
-function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata", lazy = false }) {
+function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata", lazy = false, isVisible = true, elementRef }) {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const playerRef = useRef(null);
+  
+  // Use the video playback hook to manage play/pause based on visibility and focus
+  const {
+    shouldPlay
+  } = useVideoPlayback({
+    elementRef,
+    isVisible,
+    autoplay,
+    pauseOnBlur: true
+  });
   
   const videoData = post.videoData;
   const hasAudio = videoData?.hasAudio !== false;
@@ -36,6 +48,28 @@ function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata
       
       return style;
     }, [post.oembedData?.width, post.oembedData?.height]);
+
+    // Effect to manage oembed video playback based on visibility and focus
+    useEffect(() => {
+      if (!isVisible || !shouldPlay) {
+        // Try to pause embedded videos when not visible or should not play
+        const iframes = elementRef?.current?.querySelectorAll('iframe');
+        if (iframes) {
+          iframes.forEach(iframe => {
+            try {
+              // For YouTube embeds, try to pause via postMessage
+              if (iframe.src.includes('youtube.com') || iframe.src.includes('youtu.be')) {
+                iframe.contentWindow?.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+              }
+              // For other video embeds, we can't control them directly
+              // but the visibility management helps with performance
+            } catch (e) {
+              // Cross-origin restrictions may prevent this, which is expected
+            }
+          });
+        }
+      }
+    }, [isVisible, shouldPlay, elementRef]);
 
     return (
       <div className="video-player-container oembed-container" style={oembedContainerStyle}>
@@ -83,6 +117,10 @@ function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata
     setIsLoading(false);
   };
 
+  const handlePause = () => {
+    // Video was paused by user interaction
+  };
+
   const handleBuffer = () => {
     setIsLoading(true);
   };
@@ -90,6 +128,9 @@ function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata
   const handleBufferEnd = () => {
     setIsLoading(false);
   };
+
+  // ReactPlayer handles the playing state automatically via the playing prop
+  // No need for manual sync as ReactPlayer will play/pause based on the playing prop
 
   const handleRetry = () => {
     setHasError(false);
@@ -149,15 +190,17 @@ function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata
       )}
       
       <ReactPlayer
+        ref={playerRef}
         src={videoUrl}
         className="react-player"
         width="100%"
         height="100%"
-        playing={autoplay}
+        playing={shouldPlay}
         muted={muted}
         controls={true}
         playsinline={true}
         onPlay={handlePlay}
+        onPause={handlePause}
         onError={handleError}
         config={{
           file: {

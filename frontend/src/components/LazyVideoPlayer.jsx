@@ -160,6 +160,8 @@ function LazyVideoPlayer({
       muted={muted}
       preload="metadata"
       lazy={false}
+      isVisible={isVisible}
+      elementRef={elementRef}
     />
   );
 

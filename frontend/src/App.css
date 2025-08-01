@@ -1518,8 +1518,9 @@ body.dark-theme .post-upvotes {
 /* Current Configurations Section */
 .config-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+  justify-content: start;
 }
 
 .config-item {
