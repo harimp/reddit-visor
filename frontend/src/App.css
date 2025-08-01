@@ -492,6 +492,59 @@ body.dark-theme .media-loading {
   min-height: 200px;
 }
 
+/* Oembed Container Styles */
+.oembed-container {
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.oembed-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.oembed-content iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+}
+
+.oembed-content blockquote {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.oembed-provider-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  z-index: 10;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Dark theme oembed styles */
+body.dark-theme .oembed-container {
+  background: #1a1a1a;
+}
+
+body.dark-theme .oembed-provider-badge {
+  background: rgba(0, 0, 0, 0.9);
+  color: #e0e0e0;
+}
+
 .react-player {
   border-radius: 8px;
   overflow: hidden;

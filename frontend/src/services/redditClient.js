@@ -343,7 +343,33 @@ class RedditClient {
    * Extract media URL and type from Reddit post data
    */
   extractMediaInfo(post) {
-    // Priority 0: Check for image galleries first
+    // Priority 0: Check for oembed content first
+    const oembedHtml = post.media?.oembed?.html || post.secure_media_embed?.html;
+    if (oembedHtml) {
+      // Decode HTML entities in the oembed HTML
+      const decodedOembedHtml = oembedHtml
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+      
+      return {
+        mediaUrl: post.url, // Keep original URL as fallback
+        mediaType: 'video',
+        thumbnailUrl: this.getValidThumbnail(post),
+        hasOembed: true,
+        oembedHtml: decodedOembedHtml,
+        oembedData: {
+          width: post.media?.oembed?.width || post.secure_media_embed?.width,
+          height: post.media?.oembed?.height || post.secure_media_embed?.height,
+          provider_name: post.media?.oembed?.provider_name,
+          provider_url: post.media?.oembed?.provider_url
+        }
+      };
+    }
+
+    // Priority 1: Check for image galleries
     if (post.is_gallery && post.gallery_data && post.media_metadata) {
       return {
         mediaUrl: null,
@@ -354,7 +380,7 @@ class RedditClient {
       };
     }
 
-    // Priority 1: Reddit videos (v.redd.it)
+    // Priority 2: Reddit videos (v.redd.it)
     if (post.is_video && post.media?.reddit_video) {
       const redditVideo = post.media.reddit_video;
       
@@ -381,7 +407,7 @@ class RedditClient {
       };
     }
 
-    // Priority 2: Check secure_media for videos (backup)
+    // Priority 3: Check secure_media for videos (backup)
     if (post.secure_media?.reddit_video) {
       const redditVideo = post.secure_media.reddit_video;
       
@@ -408,7 +434,7 @@ class RedditClient {
       };
     }
 
-    // Priority 3: Direct URLs
+    // Priority 4: Direct URLs
     if (post.url) {
       const url = post.url;
       
@@ -503,7 +529,7 @@ class RedditClient {
       }
     }
     
-    // Priority 4: Preview images
+    // Priority 5: Preview images
     if (post.preview?.images?.[0]) {
       const preview = post.preview.images[0];
       const sourceUrl = preview.source?.url?.replace(/&amp;/g, '&');
@@ -518,7 +544,7 @@ class RedditClient {
       }
     }
     
-    // Priority 5: No media found - text post
+    // Priority 6: No media found - text post
     return {
       mediaUrl: null,
       mediaType: 'text',
@@ -654,6 +680,9 @@ class RedditClient {
       videoData: mediaInfo.videoData || null,
       galleryData: mediaInfo.galleryData || null,
       mediaMetadata: mediaInfo.mediaMetadata || null,
+      hasOembed: mediaInfo.hasOembed || false,
+      oembedHtml: mediaInfo.oembedHtml || null,
+      oembedData: mediaInfo.oembedData || null,
     };
   }
 

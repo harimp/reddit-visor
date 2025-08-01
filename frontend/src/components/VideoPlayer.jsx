@@ -20,6 +20,45 @@ function VideoPlayer({ post, autoplay = false, muted = true, preload = "metadata
       .replace(/&#39;/g, "'");
   }, []);
 
+  // Handle oembed content
+  if (post.hasOembed && post.oembedHtml) {
+    // Calculate aspect ratio from oembed data and set as CSS custom property
+    const oembedContainerStyle = React.useMemo(() => {
+      const style = { width: '100%' };
+      
+      if (post.oembedData?.width && post.oembedData?.height) {
+        const aspectRatio = post.oembedData.width / post.oembedData.height;
+        style['--video-aspect-ratio'] = aspectRatio;
+        style.aspectRatio = `${aspectRatio}`;
+      } else {
+        style.minHeight = '200px';
+      }
+      
+      return style;
+    }, [post.oembedData?.width, post.oembedData?.height]);
+
+    return (
+      <div className="video-player-container oembed-container" style={oembedContainerStyle}>
+        <div 
+          className="oembed-content"
+          dangerouslySetInnerHTML={{ __html: post.oembedHtml }}
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'relative'
+          }}
+        />
+        
+        {/* Provider badge for oembed content */}
+        {post.oembedData?.provider_name && (
+          <div className="oembed-provider-badge">
+            {post.oembedData.provider_name}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // Get the best video URL for react-player (single URL, not array)
   const getVideoUrl = () => {
     // The redditClient has already prioritized HLS > DASH > fallback in mediaUrl
