@@ -15,11 +15,15 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
   const [showExamples, setShowExamples] = useState(false);
   const [queryValidation, setQueryValidation] = useState({ isValid: true, error: null });
   const [parsedQuery, setParsedQuery] = useState('');
+  const [editQueryValidation, setEditQueryValidation] = useState({ isValid: true, error: null });
+  const [editParsedQuery, setEditParsedQuery] = useState('');
   const [editingConfigId, setEditingConfigId] = useState(null);
   const [editForm, setEditForm] = useState({
     subreddit: '',
     sortType: 'hot',
-    timeframe: null
+    timeframe: null,
+    keywords: '',
+    configType: 'regular'
   });
 
   // Available sort types for regular feeds
@@ -78,6 +82,24 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
       setParsedQuery('');
     }
   }, [newConfig.keywords]);
+
+  // Validate and parse query when edit form keywords change
+  useEffect(() => {
+    if (editForm.keywords && editForm.keywords.trim()) {
+      const validation = validateQuery(editForm.keywords);
+      setEditQueryValidation(validation);
+      
+      if (validation.isValid) {
+        const parsed = parseKeywordQuery(editForm.keywords);
+        setEditParsedQuery(parsed);
+      } else {
+        setEditParsedQuery('');
+      }
+    } else {
+      setEditQueryValidation({ isValid: true, error: null });
+      setEditParsedQuery('');
+    }
+  }, [editForm.keywords]);
 
   const loadConfigurations = () => {
     try {
@@ -147,7 +169,9 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
     setEditForm({
       subreddit: config.subreddit,
       sortType: config.sortType,
-      timeframe: config.timeframe
+      timeframe: config.timeframe,
+      keywords: config.keywords || '',
+      configType: config.keywords ? 'keyword' : 'regular'
     });
   };
 
@@ -156,7 +180,9 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
     setEditForm({
       subreddit: '',
       sortType: 'hot',
-      timeframe: null
+      timeframe: null,
+      keywords: '',
+      configType: 'regular'
     });
   };
 
@@ -166,21 +192,46 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
       return;
     }
 
+    if (editForm.configType === 'keyword') {
+      if (!editForm.keywords.trim()) {
+        alert('Please enter keywords to search for.');
+        return;
+      }
+      
+      if (!editQueryValidation.isValid) {
+        alert(`Invalid query: ${editQueryValidation.error}`);
+        return;
+      }
+    }
+
     try {
       const redditClient = getRedditClient();
       
-      redditClient.updateSubredditConfig(
-        editingConfigId,
-        editForm.subreddit.trim(),
-        editForm.sortType,
-        editForm.timeframe
-      );
+      if (editForm.configType === 'keyword') {
+        const finalQuery = parseKeywordQuery(editForm.keywords);
+        redditClient.updateSubredditConfig(
+          editingConfigId,
+          editForm.subreddit.trim(),
+          editForm.sortType,
+          editForm.timeframe,
+          finalQuery
+        );
+      } else {
+        redditClient.updateSubredditConfig(
+          editingConfigId,
+          editForm.subreddit.trim(),
+          editForm.sortType,
+          editForm.timeframe
+        );
+      }
       
       setEditingConfigId(null);
       setEditForm({
         subreddit: '',
         sortType: 'hot',
-        timeframe: null
+        timeframe: null,
+        keywords: '',
+        configType: 'regular'
       });
       
       loadConfigurations();
@@ -366,6 +417,38 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
                           />
                         </div>
 
+                        {/* Keywords Input (only for keyword configurations) */}
+                        {editForm.configType === 'keyword' && (
+                          <div className="form-group">
+                            <label htmlFor="edit-keywords" className="form-label">
+                              Keywords
+                            </label>
+                            <input
+                              id="edit-keywords"
+                              type="text"
+                              className={`form-input ${!editQueryValidation.isValid ? 'form-input-error' : ''}`}
+                              placeholder="e.g., cats AND dogs, funny OR memes"
+                              value={editForm.keywords}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, keywords: e.target.value }))}
+                            />
+                            
+                            {/* Query Validation */}
+                            {!editQueryValidation.isValid && (
+                              <div className="form-error">
+                                {editQueryValidation.error}
+                              </div>
+                            )}
+                            
+                            {/* Parsed Query Preview */}
+                            {editParsedQuery && editQueryValidation.isValid && editParsedQuery !== editForm.keywords && (
+                              <div className="query-preview">
+                                <span className="query-preview-label">Parsed as:</span>
+                                <span className="query-preview-text">{editParsedQuery}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <div className="form-group">
                           <label htmlFor="edit-sort-type">Sort Type:</label>
                           <select
@@ -378,9 +461,9 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
                             }))}
                             className="sort-type-select"
                           >
-                            {regularSortTypes.map(sort => (
+                            {(editForm.configType === 'keyword' ? searchSortTypes : regularSortTypes).map(sort => (
                               <option key={sort.value} value={sort.value}>
-                                {sort.label}
+                                {sort.label}{sort.description ? ` - ${sort.description}` : ''}
                               </option>
                             ))}
                           </select>
