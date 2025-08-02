@@ -4,6 +4,8 @@ import Header from './components/Header.jsx';
 import SubredditManagement from './components/SubredditManagement.jsx';
 import FilterPanel from './components/FilterPanel.jsx';
 import PostGrid from './components/PostGrid.jsx';
+import TextListView from './components/TextListView.jsx';
+import ViewToggle from './components/ViewToggle.jsx';
 import ThemeToggle from './components/ThemeToggle.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import { createRedditClient } from './services/redditClient.js';
@@ -14,6 +16,7 @@ function App() {
   const [activeSubreddits, setActiveSubreddits] = useState([]);
   const [activeMediaTypes, setActiveMediaTypes] = useState([]);
   const [sortBy, setSortBy] = useState('createTime');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [redditClientReady, setRedditClientReady] = useState(false);
   
   // Polling interval constant
@@ -118,6 +121,11 @@ function App() {
     refresh();
   };
 
+  // Handle view mode changes
+  const handleViewModeChange = (newViewMode) => {
+    setViewMode(newViewMode);
+  };
+
   return (
     <ThemeProvider>
       <div className="App">
@@ -146,17 +154,32 @@ function App() {
           </div>
         ) : (
           <>
-            <FilterPanel 
-              posts={posts}
-              activeSubreddits={activeSubreddits}
-              onSubredditChange={handleSubredditChange}
-              activeMediaTypes={activeMediaTypes}
-              onMediaTypeChange={handleMediaTypeChange}
-              sortBy={sortBy}
-              onSortChange={handleSortChange}
-              onNsfwChange={handleNsfwChange}
-            />
-            <PostGrid posts={processedPosts} />
+            <div className="controls-container">
+              <FilterPanel 
+                posts={posts}
+                activeSubreddits={activeSubreddits}
+                onSubredditChange={handleSubredditChange}
+                activeMediaTypes={activeMediaTypes}
+                onMediaTypeChange={handleMediaTypeChange}
+                sortBy={sortBy}
+                onSortChange={handleSortChange}
+                onNsfwChange={handleNsfwChange}
+              />
+              <div className="view-toggle-container">
+                <ViewToggle 
+                  viewMode={viewMode}
+                  onViewModeChange={handleViewModeChange}
+                />
+              </div>
+            </div>
+            
+            <div className={`content-container ${viewMode}-view`}>
+              {viewMode === 'grid' ? (
+                <PostGrid posts={processedPosts} />
+              ) : (
+                <TextListView posts={processedPosts} />
+              )}
+            </div>
           </>
         )}
         
