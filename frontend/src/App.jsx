@@ -7,6 +7,7 @@ import PostGrid from './components/PostGrid.jsx';
 import TextListView from './components/TextListView.jsx';
 import ViewToggle from './components/ViewToggle.jsx';
 import ThemeToggle from './components/ThemeToggle.jsx';
+import RefreshPauseToggle from './components/RefreshPauseToggle.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import { createRedditClient } from './services/redditClient.js';
 import { useRedditData } from './hooks/useRedditData.js';
@@ -18,6 +19,7 @@ function App() {
   const [sortBy, setSortBy] = useState('createTime');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [redditClientReady, setRedditClientReady] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   
   // Polling interval constant
   const POLLING_INTERVAL = 30000; // 30 seconds
@@ -54,7 +56,7 @@ function App() {
     lastUpdated,
     isPolling,
     refresh
-  } = useRedditData(POLLING_INTERVAL);
+  } = useRedditData(POLLING_INTERVAL, isPaused);
 
   // Filter posts based on subreddit and media type filters
   const filteredPosts = posts.filter(post => {
@@ -126,6 +128,18 @@ function App() {
     setViewMode(newViewMode);
   };
 
+  // Handle manual pause/resume toggle
+  const handlePauseToggle = (pausedState) => {
+    setIsPaused(pausedState);
+    console.log(`Refresh ${pausedState ? 'paused' : 'resumed'} manually`);
+  };
+
+  // Handle scroll-based pause/resume
+  const handleScrollPause = (scrollPausedState) => {
+    setIsPaused(scrollPausedState);
+    console.log(`Refresh ${scrollPausedState ? 'paused' : 'resumed'} due to scrolling`);
+  };
+
   return (
     <ThemeProvider>
       <div className="App">
@@ -183,6 +197,11 @@ function App() {
           </>
         )}
         
+        <RefreshPauseToggle 
+          isPolling={isPolling}
+          onPauseToggle={handlePauseToggle}
+          onScrollPause={handleScrollPause}
+        />
         <ThemeToggle />
       </div>
     </ThemeProvider>

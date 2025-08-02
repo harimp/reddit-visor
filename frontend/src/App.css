@@ -2223,6 +2223,66 @@ body.dark-theme .post-upvotes {
   }
 }
 
+/* Refresh Pause Toggle Button */
+.refresh-pause-toggle-btn {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #27ae60;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.refresh-pause-toggle-btn:hover {
+  background: #229954;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(39, 174, 96, 0.4);
+}
+
+.refresh-pause-toggle-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.refresh-pause-toggle-btn.paused {
+  background: #95a5a6;
+  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+}
+
+.refresh-pause-toggle-btn.paused:hover {
+  background: #7f8c8d;
+  box-shadow: 0 6px 16px rgba(149, 165, 166, 0.4);
+}
+
+.refresh-pause-toggle-btn.paused:active {
+  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+}
+
+.refresh-pause-toggle-btn.scroll-paused {
+  background: #95a5a6;
+  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+}
+
+.refresh-pause-toggle-btn.scroll-paused:hover {
+  background: #7f8c8d;
+  box-shadow: 0 6px 16px rgba(149, 165, 166, 0.4);
+}
+
+.refresh-pause-toggle-btn.scroll-paused:active {
+  box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+}
+
 /* Theme Toggle Button */
 .theme-toggle-btn {
   position: fixed;
@@ -3638,8 +3698,16 @@ body.dark-theme .media-tag-gallery {
   }
 }
 
-/* Dark theme for mobile */
+/* Mobile Refresh Pause Toggle Styles */
 @media (max-width: 768px) {
+  .refresh-pause-toggle-btn {
+    bottom: 75px;
+    right: 15px;
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
+  }
+  
   .theme-toggle-btn {
     bottom: 15px;
     right: 15px;
@@ -3674,6 +3742,24 @@ body.dark-theme .media-tag-gallery {
   
   .sound-label {
     font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .refresh-pause-toggle-btn {
+    bottom: 70px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+  }
+  
+  .theme-toggle-btn {
+    bottom: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
   }
 }
 

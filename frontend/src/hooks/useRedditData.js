@@ -5,7 +5,7 @@ import { getRedditClient } from '../services/redditClient.js';
  * Custom React hook for managing Reddit data
  * Handles polling, caching, and state management
  */
-export const useRedditData = (pollingInterval = 30000) => {
+export const useRedditData = (pollingInterval = 30000, isPaused = false) => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -178,16 +178,20 @@ export const useRedditData = (pollingInterval = 30000) => {
     };
   }, [fetchPosts, loadFromCache]);
 
-  // Start polling after initial load
+  // Handle pause/resume polling based on isPaused state
   useEffect(() => {
     if (!loading && posts.length > 0) {
-      startPolling();
+      if (isPaused) {
+        stopPolling();
+      } else {
+        startPolling();
+      }
     }
     
     return () => {
       stopPolling();
     };
-  }, [loading, posts.length, startPolling, stopPolling]);
+  }, [loading, posts.length, isPaused, startPolling, stopPolling]);
 
   // Set up time update interval for relative timestamps
   useEffect(() => {
