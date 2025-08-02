@@ -32,6 +32,10 @@ class RedditClient {
     // Now an array of configuration objects, each representing a separate request
     this.subredditConfigs = [];
     this.loadSubredditConfigs();
+    
+    // Initialize NSFW setting
+    this.nsfwSetting = 'sfw'; // Default to safe for work
+    this.loadNsfwSetting();
   }
 
   /**
@@ -44,7 +48,12 @@ class RedditClient {
         const configs = JSON.parse(saved);
         
         // Check if we need to migrate from old keyword-based system
-        if (configs.length > 0 && configs[0].keywords) {
+        // Only migrate if ALL configs have keywords (old system) and no id field (new system)
+        const needsMigration = configs.length > 0 && 
+          configs.every(config => config.keywords && !config.id) &&
+          !configs.some(config => config.subreddit && config.sortType);
+        
+        if (needsMigration) {
           console.log('Migrating from old keyword-based system to new sort-based system...');
           this.initializeDefaultSubreddits();
           console.log('Migration complete - initialized with new picture-based defaults');
@@ -242,6 +251,40 @@ class RedditClient {
       params.t = timeframe;
     }
     
+    // Add NSFW parameter if set to include NSFW content
+    if (this.nsfwSetting === 'nsfw') {
+      params.include_over_18 = 'on';
+    }
+    // For SFW mode, we omit the parameter (Reddit's default excludes NSFW)
+    
+    const urlParams = new URLSearchParams(params);
+    return `${baseUrl}?${urlParams.toString()}`;
+  }
+
+  /**
+   * Build Reddit search URL for keyword searches
+   */
+  buildSearchUrl(subreddit, keywords, sortType = 'relevance', timeframe = null) {
+    const baseUrl = `https://www.reddit.com/r/${subreddit}/search.json`;
+    
+    const params = {
+      q: keywords,           // Boolean query string
+      restrict_sr: 'on',     // Search within subreddit only
+      sort: sortType,        // relevance, hot, top, new, comments
+      limit: '50'            // Reasonable limit for visual content
+    };
+    
+    // Add timeframe for 'top' sort in searches
+    if (sortType === 'top' && timeframe) {
+      params.t = timeframe;
+    }
+    
+    // Add NSFW parameter if set to include NSFW content
+    if (this.nsfwSetting === 'nsfw') {
+      params.include_over_18 = 'on';
+    }
+    // For SFW mode, we omit the parameter (Reddit's default excludes NSFW)
+    
     const urlParams = new URLSearchParams(params);
     return `${baseUrl}?${urlParams.toString()}`;
   }
@@ -249,13 +292,14 @@ class RedditClient {
   /**
    * Add a new subreddit configuration
    */
-  addSubredditConfig(subreddit, sortType = 'hot', timeframe = null) {
-    const id = `${subreddit}_${sortType}_${timeframe || 'none'}_${Date.now()}`;
+  addSubredditConfig(subreddit, sortType = 'hot', timeframe = null, keywords = null) {
+    const id = `${subreddit}_${sortType}_${timeframe || 'none'}_${keywords ? 'search' : 'feed'}_${Date.now()}`;
     const newConfig = {
       id,
       subreddit,
       sortType,
-      timeframe
+      timeframe,
+      keywords
     };
     
     this.subredditConfigs.push(newConfig);
@@ -266,14 +310,15 @@ class RedditClient {
   /**
    * Update existing subreddit configuration by ID
    */
-  updateSubredditConfig(configId, subreddit, sortType = 'hot', timeframe = null) {
+  updateSubredditConfig(configId, subreddit, sortType = 'hot', timeframe = null, keywords = null) {
     const configIndex = this.subredditConfigs.findIndex(config => config.id === configId);
     if (configIndex !== -1) {
       this.subredditConfigs[configIndex] = {
         id: configId,
         subreddit,
         sortType,
-        timeframe
+        timeframe,
+        keywords
       };
       this.saveSubredditConfigs();
       return true;
@@ -310,6 +355,58 @@ class RedditClient {
     this.subredditConfigs = [];
     this.initializeDefaultSubreddits();
     console.log(`Reset complete. ${this.subredditConfigs.length} default configurations restored`);
+  }
+
+  /**
+   * Load NSFW setting from localStorage or initialize default
+   */
+  loadNsfwSetting() {
+    try {
+      const saved = localStorage.getItem('redditvisor_nsfw_setting');
+      if (saved && (saved === 'sfw' || saved === 'nsfw')) {
+        this.nsfwSetting = saved;
+        console.log(`Loaded NSFW setting: ${this.nsfwSetting}`);
+      } else {
+        this.nsfwSetting = 'sfw'; // Default to safe for work
+        this.saveNsfwSetting();
+        console.log('Initialized NSFW setting to default: sfw');
+      }
+    } catch (error) {
+      console.error('Error loading NSFW setting from localStorage:', error);
+      this.nsfwSetting = 'sfw';
+    }
+  }
+
+  /**
+   * Save NSFW setting to localStorage
+   */
+  saveNsfwSetting() {
+    try {
+      localStorage.setItem('redditvisor_nsfw_setting', this.nsfwSetting);
+      console.log(`Saved NSFW setting: ${this.nsfwSetting}`);
+    } catch (error) {
+      console.error('Error saving NSFW setting to localStorage:', error);
+    }
+  }
+
+  /**
+   * Get current NSFW setting
+   */
+  getNsfwSetting() {
+    return this.nsfwSetting;
+  }
+
+  /**
+   * Set NSFW setting
+   */
+  setNsfwSetting(setting) {
+    if (setting !== 'sfw' && setting !== 'nsfw') {
+      throw new Error('NSFW setting must be either "sfw" or "nsfw"');
+    }
+    
+    this.nsfwSetting = setting;
+    this.saveNsfwSetting();
+    console.log(`Updated NSFW setting to: ${this.nsfwSetting}`);
   }
 
   /**
@@ -687,7 +784,7 @@ class RedditClient {
   }
 
   /**
-   * Fetch all posts from all configurations using sort-based URLs
+   * Fetch all posts from all configurations using sort-based or search URLs
    */
   async fetchAllPosts() {
     try {
@@ -700,11 +797,22 @@ class RedditClient {
       
       // Create a request for each configuration
       const configPromises = this.subredditConfigs.map(async (config) => {
-        const { subreddit, sortType, timeframe } = config;
+        const { subreddit, sortType, timeframe, keywords } = config;
         
-        // Build sort URL for this specific configuration
-        const url = this.buildSortUrl(subreddit, sortType, timeframe);
-        console.log(`Fetching from: r/${subreddit} (${sortType}${timeframe ? `/${timeframe}` : ''})`);
+        let url;
+        let logMessage;
+        
+        if (keywords && keywords.trim()) {
+          // Use search endpoint for keyword queries
+          url = this.buildSearchUrl(subreddit, keywords.trim(), sortType, timeframe);
+          logMessage = `Searching r/${subreddit} for "${keywords}" (${sortType}${timeframe ? `/${timeframe}` : ''})`;
+        } else {
+          // Use regular sort endpoint
+          url = this.buildSortUrl(subreddit, sortType, timeframe);
+          logMessage = `Fetching from: r/${subreddit} (${sortType}${timeframe ? `/${timeframe}` : ''})`;
+        }
+        
+        console.log(logMessage);
         
         const posts = await this.fetchRedditData(url);
         

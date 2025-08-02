@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import Header from './components/Header.jsx';
 import SubredditManagement from './components/SubredditManagement.jsx';
-import SubredditFilter from './components/SubredditFilter.jsx';
-import MediaTypeFilter from './components/MediaTypeFilter.jsx';
-import SortControl from './components/SortControl.jsx';
+import FilterPanel from './components/FilterPanel.jsx';
 import PostGrid from './components/PostGrid.jsx';
 import ThemeToggle from './components/ThemeToggle.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
@@ -114,6 +112,12 @@ function App() {
     refresh();
   };
 
+  // Handle NSFW setting changes
+  const handleNsfwChange = (newSetting) => {
+    // Refresh data when NSFW setting changes to get new content
+    refresh();
+  };
+
   return (
     <ThemeProvider>
       <div className="App">
@@ -142,19 +146,15 @@ function App() {
           </div>
         ) : (
           <>
-            <MediaTypeFilter 
-              posts={posts}
-              activeMediaTypes={activeMediaTypes}
-              onMediaTypeChange={handleMediaTypeChange}
-            />
-            <SubredditFilter 
+            <FilterPanel 
               posts={posts}
               activeSubreddits={activeSubreddits}
               onSubredditChange={handleSubredditChange}
-            />
-            <SortControl 
+              activeMediaTypes={activeMediaTypes}
+              onMediaTypeChange={handleMediaTypeChange}
               sortBy={sortBy}
               onSortChange={handleSortChange}
+              onNsfwChange={handleNsfwChange}
             />
             <PostGrid posts={processedPosts} />
           </>

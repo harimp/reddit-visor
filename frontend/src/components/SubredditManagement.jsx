@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getRedditClient } from '../services/redditClient.js';
+import { parseKeywordQuery, validateQuery, getQueryExamples, formatQueryForDisplay } from '../utils/queryParser.js';
 
 function SubredditManagement({ onConfigChange, redditClientReady }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -7,8 +8,13 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
   const [newConfig, setNewConfig] = useState({
     subreddit: '',
     sortType: 'hot',
-    timeframe: null
+    timeframe: null,
+    keywords: '',
+    configType: 'regular' // 'regular' or 'keyword'
   });
+  const [showExamples, setShowExamples] = useState(false);
+  const [queryValidation, setQueryValidation] = useState({ isValid: true, error: null });
+  const [parsedQuery, setParsedQuery] = useState('');
   const [editingConfigId, setEditingConfigId] = useState(null);
   const [editForm, setEditForm] = useState({
     subreddit: '',
@@ -16,13 +22,27 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
     timeframe: null
   });
 
-  // Available sort types
-  const sortTypes = [
+  // Available sort types for regular feeds
+  const regularSortTypes = [
     { value: 'hot', label: 'Hot' },
     { value: 'new', label: 'New' },
     { value: 'rising', label: 'Rising' },
     { value: 'top', label: 'Top' }
   ];
+
+  // Available sort types for keyword search
+  const searchSortTypes = [
+    { value: 'relevance', label: 'Relevance', description: 'Best matches' },
+    { value: 'hot', label: 'Hot', description: 'Trending posts' },
+    { value: 'top', label: 'Top', description: 'Highest scoring' },
+    { value: 'new', label: 'New', description: 'Most recent' },
+    { value: 'comments', label: 'Comments', description: 'Most discussed' }
+  ];
+
+  // Get current sort types based on config type
+  const getCurrentSortTypes = () => {
+    return newConfig.configType === 'keyword' ? searchSortTypes : regularSortTypes;
+  };
 
   // Available timeframes for 'top' sort
   const timeframes = [
@@ -40,6 +60,24 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
       loadConfigurations();
     }
   }, [redditClientReady]);
+
+  // Validate and parse query when keywords change
+  useEffect(() => {
+    if (newConfig.keywords.trim()) {
+      const validation = validateQuery(newConfig.keywords);
+      setQueryValidation(validation);
+      
+      if (validation.isValid) {
+        const parsed = parseKeywordQuery(newConfig.keywords);
+        setParsedQuery(parsed);
+      } else {
+        setParsedQuery('');
+      }
+    } else {
+      setQueryValidation({ isValid: true, error: null });
+      setParsedQuery('');
+    }
+  }, [newConfig.keywords]);
 
   const loadConfigurations = () => {
     try {
@@ -153,6 +191,79 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
     }
   };
 
+  const handleUnifiedAddConfig = () => {
+    if (!newConfig.subreddit.trim()) {
+      alert('Please enter a subreddit name.');
+      return;
+    }
+
+    if (newConfig.configType === 'keyword') {
+      if (!newConfig.keywords.trim()) {
+        alert('Please enter keywords to search for.');
+        return;
+      }
+      
+      if (!queryValidation.isValid) {
+        alert(`Invalid query: ${queryValidation.error}`);
+        return;
+      }
+    }
+
+    try {
+      const redditClient = getRedditClient();
+      
+      if (newConfig.configType === 'keyword') {
+        const finalQuery = parseKeywordQuery(newConfig.keywords);
+        redditClient.addSubredditConfig(
+          newConfig.subreddit.trim(),
+          newConfig.sortType,
+          newConfig.timeframe,
+          finalQuery
+        );
+      } else {
+        redditClient.addSubredditConfig(
+          newConfig.subreddit.trim(),
+          newConfig.sortType,
+          newConfig.timeframe
+        );
+      }
+      
+      // Reset form
+      setNewConfig({
+        subreddit: '',
+        sortType: newConfig.configType === 'keyword' ? 'relevance' : 'hot',
+        timeframe: null,
+        keywords: '',
+        configType: newConfig.configType // Keep the same config type
+      });
+      
+      loadConfigurations();
+      onConfigChange?.();
+    } catch (error) {
+      console.error('Error adding configuration:', error);
+      alert('Error adding configuration. Please try again.');
+    }
+  };
+
+  const handleKeywordConfigChange = (keywordConfig) => {
+    try {
+      const redditClient = getRedditClient();
+      
+      redditClient.addSubredditConfig(
+        keywordConfig.subreddit,
+        keywordConfig.sortType,
+        keywordConfig.timeframe,
+        keywordConfig.keywords
+      );
+      
+      loadConfigurations();
+      onConfigChange?.();
+    } catch (error) {
+      console.error('Error adding keyword configuration:', error);
+      alert('Error adding keyword configuration. Please try again.');
+    }
+  };
+
   const handleResetToDefaults = () => {
     const confirmReset = window.confirm(
       'Are you sure you want to reset all subreddit configurations to defaults? This will remove all custom configurations and restore the original picture-based subreddits.'
@@ -173,7 +284,14 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
   };
 
   const getSortTypeLabel = (sortType) => {
-    return sortTypes.find(s => s.value === sortType)?.label || sortType;
+    // Try to find in regular sort types first, then search sort types
+    const regularSort = regularSortTypes.find(s => s.value === sortType);
+    if (regularSort) return regularSort.label;
+    
+    const searchSort = searchSortTypes.find(s => s.value === sortType);
+    if (searchSort) return searchSort.label;
+    
+    return sortType;
   };
 
   const getTimeframeLabel = (timeframe) => {
@@ -260,7 +378,7 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
                             }))}
                             className="sort-type-select"
                           >
-                            {sortTypes.map(sort => (
+                            {regularSortTypes.map(sort => (
                               <option key={sort.value} value={sort.value}>
                                 {sort.label}
                               </option>
@@ -294,9 +412,15 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
                         <div className="config-info">
                           <span className="config-subreddit">r/{config.subreddit}</span>
                           <span className="config-sort">
+                            {config.keywords ? '🔍 ' : ''}
                             {getSortTypeLabel(config.sortType)}
                             {config.timeframe && ` (${getTimeframeLabel(config.timeframe)})`}
                           </span>
+                          {config.keywords && (
+                            <span className="config-keywords">
+                              Keywords: "{config.keywords}"
+                            </span>
+                          )}
                         </div>
                         <div className="config-actions">
                           <button
@@ -329,20 +453,93 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
           <div className="management-section">
             <h3 className="section-title">Add New Configuration</h3>
             <div className="add-config-form">
+              {/* Segmented Control */}
               <div className="form-group">
-                <label htmlFor="new-subreddit">Subreddit Name:</label>
+                <div className="segmented-control">
+                  <button
+                    type="button"
+                    className={`segment-button ${newConfig.configType === 'regular' ? 'active' : ''}`}
+                    onClick={() => setNewConfig(prev => ({ 
+                      ...prev, 
+                      configType: 'regular',
+                      sortType: 'hot',
+                      keywords: '',
+                      timeframe: null
+                    }))}
+                  >
+                    Regular Feed
+                  </button>
+                  <button
+                    type="button"
+                    className={`segment-button ${newConfig.configType === 'keyword' ? 'active' : ''}`}
+                    onClick={() => setNewConfig(prev => ({ 
+                      ...prev, 
+                      configType: 'keyword',
+                      sortType: 'relevance',
+                      timeframe: null
+                    }))}
+                  >
+                    Keyword Search
+                  </button>
+                </div>
+              </div>
+
+              {/* Subreddit Input */}
+              <div className="form-group">
+                <label htmlFor="new-subreddit">Subreddit:</label>
                 <input
                   id="new-subreddit"
                   type="text"
-                  placeholder="e.g., cats, funny, aww"
+                  placeholder="e.g., cats, funny, programming"
                   value={newConfig.subreddit}
                   onChange={(e) => setNewConfig(prev => ({ ...prev, subreddit: e.target.value }))}
-                  className="subreddit-name-input"
+                  className="form-input"
                 />
               </div>
 
+              {/* Keywords Input (only for keyword search) */}
+              {newConfig.configType === 'keyword' && (
+                <div className="form-group">
+                  <label htmlFor="new-keywords" className="form-label">
+                    Keywords
+                    <button
+                      type="button"
+                      className="help-button"
+                      onClick={() => setShowExamples(!showExamples)}
+                      title="Show query examples"
+                    >
+                      ?
+                    </button>
+                  </label>
+                  <input
+                    id="new-keywords"
+                    type="text"
+                    className={`form-input ${!queryValidation.isValid ? 'form-input-error' : ''}`}
+                    placeholder="e.g., cats AND dogs, funny OR memes"
+                    value={newConfig.keywords}
+                    onChange={(e) => setNewConfig(prev => ({ ...prev, keywords: e.target.value }))}
+                  />
+                  
+                  {/* Query Validation */}
+                  {!queryValidation.isValid && (
+                    <div className="form-error">
+                      {queryValidation.error}
+                    </div>
+                  )}
+                  
+                  {/* Parsed Query Preview */}
+                  {parsedQuery && queryValidation.isValid && parsedQuery !== newConfig.keywords && (
+                    <div className="query-preview">
+                      <span className="query-preview-label">Parsed as:</span>
+                      <span className="query-preview-text">{parsedQuery}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sort Type */}
               <div className="form-group">
-                <label htmlFor="new-sort-type">Sort Type:</label>
+                <label htmlFor="new-sort-type">Sort Results By:</label>
                 <select
                   id="new-sort-type"
                   value={newConfig.sortType}
@@ -351,24 +548,25 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
                     sortType: e.target.value,
                     timeframe: e.target.value === 'top' ? 'day' : null
                   }))}
-                  className="sort-type-select"
+                  className="form-select"
                 >
-                  {sortTypes.map(sort => (
+                  {getCurrentSortTypes().map(sort => (
                     <option key={sort.value} value={sort.value}>
-                      {sort.label}
+                      {sort.label}{sort.description ? ` - ${sort.description}` : ''}
                     </option>
                   ))}
                 </select>
               </div>
 
+              {/* Timeframe (only for 'top' sort) */}
               {newConfig.sortType === 'top' && (
                 <div className="form-group">
-                  <label htmlFor="new-timeframe">Timeframe:</label>
+                  <label htmlFor="new-timeframe">Time Period:</label>
                   <select
                     id="new-timeframe"
                     value={newConfig.timeframe || 'day'}
                     onChange={(e) => setNewConfig(prev => ({ ...prev, timeframe: e.target.value }))}
-                    className="timeframe-select"
+                    className="form-select"
                   >
                     {timeframes.map(time => (
                       <option key={time.value} value={time.value}>
@@ -379,14 +577,56 @@ function SubredditManagement({ onConfigChange, redditClientReady }) {
                 </div>
               )}
               
-              <button
-                className="add-config-btn"
-                onClick={handleAddConfig}
-                disabled={!newConfig.subreddit.trim()}
-              >
-                Add Configuration
-              </button>
+              {/* Add Button */}
+              <div className="form-group">
+                <button
+                  type="button"
+                  className="add-config-button"
+                  onClick={handleUnifiedAddConfig}
+                  disabled={!newConfig.subreddit.trim() || 
+                    (newConfig.configType === 'keyword' && (!newConfig.keywords.trim() || !queryValidation.isValid))}
+                >
+                  Add Configuration
+                </button>
+              </div>
             </div>
+
+            {/* Query Examples (only for keyword search) */}
+            {newConfig.configType === 'keyword' && showExamples && (
+              <div className="query-examples">
+                <h4 className="examples-title">Query Examples</h4>
+                <div className="examples-list">
+                  {getQueryExamples().map((example, index) => (
+                    <div key={index} className="example-item">
+                      <button
+                        type="button"
+                        className="example-button"
+                        onClick={() => {
+                          setNewConfig(prev => ({ ...prev, keywords: example.input }));
+                          setShowExamples(false);
+                        }}
+                      >
+                        <code className="example-input">{example.input}</code>
+                        <span className="example-arrow">→</span>
+                        <code className="example-output">{example.output}</code>
+                      </button>
+                      <p className="example-description">{example.description}</p>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="query-syntax-help">
+                  <h5>Query Syntax</h5>
+                  <ul>
+                    <li><strong>AND</strong>: Both terms must be present (default for spaces)</li>
+                    <li><strong>OR</strong>: Either term can be present</li>
+                    <li><strong>NOT</strong>: Exclude posts with this term</li>
+                    <li><strong>"quotes"</strong>: Search for exact phrases</li>
+                    <li><strong>(parentheses)</strong>: Group terms for complex queries</li>
+                  </ul>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
