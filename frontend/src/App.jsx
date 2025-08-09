@@ -140,6 +140,24 @@ function App() {
     console.log(`Refresh ${scrollPausedState ? 'paused' : 'resumed'} due to scrolling`);
   };
 
+  // Handle profile changes
+  const handleProfileChange = (profile, uiPreferences) => {
+    console.log(`Profile changed to: ${profile.name}`);
+    
+    // Apply UI preferences if available
+    if (uiPreferences) {
+      if (uiPreferences.viewMode) {
+        setViewMode(uiPreferences.viewMode);
+      }
+      if (uiPreferences.sortBy) {
+        setSortBy(uiPreferences.sortBy);
+      }
+    }
+    
+    // Refresh data to load new profile's subreddit configurations
+    refresh();
+  };
+
   return (
     <ThemeProvider>
       <div className="App">
@@ -152,6 +170,9 @@ function App() {
           isPolling={isPolling}
           pollingInterval={POLLING_INTERVAL}
           onRefresh={refresh}
+          onProfileChange={handleProfileChange}
+          onConfigChange={handleConfigChange}
+          redditClientReady={redditClientReady}
         />
         
         <SubredditManagement 

@@ -1,7 +1,8 @@
 import React from 'react';
 import RefreshTimer from './RefreshTimer.jsx';
+import ProfileSelector from './ProfileSelector.jsx';
 
-function Header({ totalPosts, filteredPosts, lastUpdated, error, hasActiveFilters, isPolling, pollingInterval, onRefresh }) {
+function Header({ totalPosts, filteredPosts, lastUpdated, error, hasActiveFilters, isPolling, pollingInterval, onRefresh, onProfileChange, onConfigChange, redditClientReady }) {
   const formatLastUpdated = (date) => {
     if (!date) return 'Never';
     return date.toLocaleTimeString();
@@ -42,6 +43,11 @@ function Header({ totalPosts, filteredPosts, lastUpdated, error, hasActiveFilter
           </div>
         </div>
         <div className="header-right">
+        <ProfileSelector 
+          onProfileChange={onProfileChange}
+          onConfigChange={onConfigChange}
+          redditClientReady={redditClientReady}
+        />
           <button
             className="refresh-now-btn"
             onClick={onRefresh}

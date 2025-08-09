@@ -36,6 +36,11 @@ class RedditClient {
     // Initialize NSFW setting
     this.nsfwSetting = 'sfw'; // Default to safe for work
     this.loadNsfwSetting();
+    
+    // Initialize configuration profiles
+    this.profiles = [];
+    this.currentProfileId = null;
+    this.loadProfiles();
   }
 
   /**
@@ -781,6 +786,269 @@ class RedditClient {
       oembedHtml: mediaInfo.oembedHtml || null,
       oembedData: mediaInfo.oembedData || null,
     };
+  }
+
+  /**
+   * Load configuration profiles from localStorage or initialize defaults
+   */
+  loadProfiles() {
+    try {
+      const saved = localStorage.getItem('redditvisor_profiles');
+      if (saved) {
+        const profileData = JSON.parse(saved);
+        this.profiles = profileData.profiles || [];
+        this.currentProfileId = profileData.currentProfileId || null;
+        console.log(`Loaded ${this.profiles.length} configuration profiles from localStorage`);
+        
+        // If we have a current profile, load its configuration
+        if (this.currentProfileId) {
+          this.loadProfile(this.currentProfileId);
+        }
+      } else {
+        this.initializeDefaultProfiles();
+      }
+    } catch (error) {
+      console.error('Error loading configuration profiles from localStorage:', error);
+      this.initializeDefaultProfiles();
+    }
+  }
+
+  /**
+   * Save configuration profiles to localStorage
+   */
+  saveProfiles() {
+    try {
+      const profileData = {
+        profiles: this.profiles,
+        currentProfileId: this.currentProfileId
+      };
+      localStorage.setItem('redditvisor_profiles', JSON.stringify(profileData));
+      console.log(`Saved ${this.profiles.length} configuration profiles to localStorage`);
+    } catch (error) {
+      console.error('Error saving configuration profiles to localStorage:', error);
+    }
+  }
+
+  /**
+   * Initialize default configuration profiles
+   */
+  initializeDefaultProfiles() {
+    const defaultProfile = {
+      id: 'default_profile',
+      name: 'Default',
+      description: 'Default picture-focused subreddits',
+      createdAt: Date.now(),
+      lastUsed: Date.now(),
+      configuration: {
+        subredditConfigs: [...this.subredditConfigs],
+        nsfwSetting: this.nsfwSetting,
+        uiPreferences: {
+          viewMode: 'grid',
+          sortBy: 'createTime'
+        }
+      }
+    };
+
+    this.profiles = [defaultProfile];
+    this.currentProfileId = defaultProfile.id;
+    this.saveProfiles();
+    console.log('Initialized default configuration profile');
+  }
+
+  /**
+   * Create a new configuration profile from current state
+   */
+  createProfile(name, description = '') {
+    const profileId = `profile_${Date.now()}`;
+    const newProfile = {
+      id: profileId,
+      name: name,
+      description: description,
+      createdAt: Date.now(),
+      lastUsed: Date.now(),
+      configuration: {
+        subredditConfigs: [...this.subredditConfigs],
+        nsfwSetting: this.nsfwSetting,
+        uiPreferences: {
+          viewMode: 'grid',
+          sortBy: 'createTime'
+        }
+      }
+    };
+
+    this.profiles.push(newProfile);
+    this.saveProfiles();
+    console.log(`Created new profile: ${name}`);
+    return profileId;
+  }
+
+  /**
+   * Update existing profile with current configuration
+   */
+  updateProfile(profileId, updates = {}) {
+    const profileIndex = this.profiles.findIndex(p => p.id === profileId);
+    if (profileIndex !== -1) {
+      const profile = this.profiles[profileIndex];
+      
+      // Update profile metadata
+      if (updates.name) profile.name = updates.name;
+      if (updates.description !== undefined) profile.description = updates.description;
+      
+      // Update configuration if requested
+      if (updates.updateConfiguration !== false) {
+        profile.configuration = {
+          subredditConfigs: [...this.subredditConfigs],
+          nsfwSetting: this.nsfwSetting,
+          uiPreferences: updates.uiPreferences || profile.configuration.uiPreferences
+        };
+      }
+      
+      profile.lastUsed = Date.now();
+      this.saveProfiles();
+      console.log(`Updated profile: ${profile.name}`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Delete a configuration profile
+   */
+  deleteProfile(profileId) {
+    if (profileId === 'default_profile') {
+      console.warn('Cannot delete default profile');
+      return false;
+    }
+
+    const initialLength = this.profiles.length;
+    this.profiles = this.profiles.filter(p => p.id !== profileId);
+    
+    if (this.profiles.length < initialLength) {
+      // If we deleted the current profile, switch to default
+      if (this.currentProfileId === profileId) {
+        this.currentProfileId = 'default_profile';
+        this.loadProfile(this.currentProfileId);
+      }
+      
+      this.saveProfiles();
+      console.log(`Deleted profile: ${profileId}`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Load a configuration profile
+   */
+  loadProfile(profileId) {
+    const profile = this.profiles.find(p => p.id === profileId);
+    if (profile) {
+      // Load subreddit configurations
+      this.subredditConfigs = [...profile.configuration.subredditConfigs];
+      
+      // Load NSFW setting
+      this.nsfwSetting = profile.configuration.nsfwSetting;
+      
+      // Update current profile
+      this.currentProfileId = profileId;
+      profile.lastUsed = Date.now();
+      
+      // Save configurations to their respective localStorage keys
+      this.saveSubredditConfigs();
+      this.saveNsfwSetting();
+      this.saveProfiles();
+      
+      console.log(`Loaded profile: ${profile.name}`);
+      return {
+        profile: profile,
+        uiPreferences: profile.configuration.uiPreferences
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Get all configuration profiles
+   */
+  getProfiles() {
+    return [...this.profiles].sort((a, b) => b.lastUsed - a.lastUsed);
+  }
+
+  /**
+   * Get current profile
+   */
+  getCurrentProfile() {
+    return this.profiles.find(p => p.id === this.currentProfileId) || null;
+  }
+
+  /**
+   * Duplicate an existing profile
+   */
+  duplicateProfile(profileId, newName) {
+    const sourceProfile = this.profiles.find(p => p.id === profileId);
+    if (sourceProfile) {
+      const duplicateId = `profile_${Date.now()}`;
+      const duplicateProfile = {
+        id: duplicateId,
+        name: newName,
+        description: `Copy of ${sourceProfile.name}`,
+        createdAt: Date.now(),
+        lastUsed: Date.now(),
+        configuration: {
+          subredditConfigs: [...sourceProfile.configuration.subredditConfigs],
+          nsfwSetting: sourceProfile.configuration.nsfwSetting,
+          uiPreferences: { ...sourceProfile.configuration.uiPreferences }
+        }
+      };
+
+      this.profiles.push(duplicateProfile);
+      this.saveProfiles();
+      console.log(`Duplicated profile: ${sourceProfile.name} -> ${newName}`);
+      return duplicateId;
+    }
+    return null;
+  }
+
+  /**
+   * Export profile configuration as JSON
+   */
+  exportProfile(profileId) {
+    const profile = this.profiles.find(p => p.id === profileId);
+    if (profile) {
+      return {
+        name: profile.name,
+        description: profile.description,
+        configuration: profile.configuration,
+        exportedAt: Date.now(),
+        version: '1.0'
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Import profile configuration from JSON
+   */
+  importProfile(profileData, customName = null) {
+    try {
+      const profileId = `profile_${Date.now()}`;
+      const importedProfile = {
+        id: profileId,
+        name: customName || profileData.name || 'Imported Profile',
+        description: profileData.description || 'Imported configuration',
+        createdAt: Date.now(),
+        lastUsed: Date.now(),
+        configuration: profileData.configuration
+      };
+
+      this.profiles.push(importedProfile);
+      this.saveProfiles();
+      console.log(`Imported profile: ${importedProfile.name}`);
+      return profileId;
+    } catch (error) {
+      console.error('Error importing profile:', error);
+      return null;
+    }
   }
 
   /**
